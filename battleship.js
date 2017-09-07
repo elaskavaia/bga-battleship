@@ -179,42 +179,20 @@ function (dojo, declare) {
             var id = event.currentTarget.id;
             console.log('onGrid '+id);
             dojo.stopEvent(event);
+            
+            var ss = id.split('_');
+            if (ss[1] != '0') {
+                this.showMoveUnauthorized();
+                return;
+            }
+            var node = $(id);
+            if (dojo.hasClass(node,'ship')) {
+                dojo.removeClass(node,'ship');
+            } else {
+                dojo.addClass(node,'ship');
+            }
         },
         
-        /* Example:
-        
-        onMyMethodToCall1: function( evt )
-        {
-            console.log( 'onMyMethodToCall1' );
-            
-            // Preventing default browser reaction
-            dojo.stopEvent( evt );
-
-            // Check that this action is possible (see "possibleactions" in states.inc.php)
-            if( ! this.checkAction( 'myAction' ) )
-            {   return; }
-
-            this.ajaxcall( "/battleship/battleship/myAction.html", { 
-                                                                    lock: true, 
-                                                                    myArgument1: arg1, 
-                                                                    myArgument2: arg2,
-                                                                    ...
-                                                                 }, 
-                         this, function( result ) {
-                            
-                            // What to do after the server call if it succeeded
-                            // (most of the time: nothing)
-                            
-                         }, function( is_error) {
-
-                            // What to do after the server call in anyway (success or failure)
-                            // (most of the time: nothing)
-
-                         } );        
-        },        
-        
-        */
-
         
         ///////////////////////////////////////////////////
         //// Reaction to cometD notifications

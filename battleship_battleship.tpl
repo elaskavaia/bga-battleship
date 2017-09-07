@@ -28,8 +28,13 @@
 
 <div class="board">
     <div class="background-grids">
+
+
         <!-- BEGIN grid -->
-        <table class="{GRID_CLASS}">
+
+        <table class="{GRID_CLASS} grid">
+        <caption id="{GRID_CLASS}_ships_title" class="board_title {GRID_CLASS}_ships_title">{GRID_CAPTION}</caption>
+        <tbody>
             <!-- BEGIN gridRow -->
             <tr>
                 <!-- BEGIN gridCell -->
@@ -37,6 +42,7 @@
                 <!-- END gridCell -->
             </tr>
             <!-- END gridRow -->
+        </tbody>
         </table>
         <!-- END grid -->
     </div>

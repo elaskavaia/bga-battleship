@@ -51,20 +51,23 @@
     height: 800px;
     width: 800px;
 }
-
-.board .background-grids {
+.grid caption {
+	text-align: right;
+	height: 20px;
+}
+.background-grids {
     display: inline-block;
     margin-top: 50px;
     margin-left: 50px;
 }
 
-.board .background-grids td{
+.background-grids td{
     border: 1px solid black;
     vertical-align: middle;
     text-align: center;
 }
 
-.board .background-grids td .gridPlacement {
+.gridPlacement {
     height: 100%;
     width: 100%;
     background-color: blue;
@@ -87,7 +90,7 @@
 
 .board .background-grids .grid_1 {
     margin-left: 246px;
-    margin-top: -43px;
+    margin-top: -63px;
 }
 
 .board .background-grids .grid_1 td {
@@ -107,24 +110,10 @@
 .board .background-grids td.cell-last-inside-col {
     border-right: 2px solid black;
 }
-/*
-    Example of CSS sprites (a black token and a white token, 20x20px each, embedded in the same "tokens.png" 40x20px image):
-
-    .white_token {
-        background-image: url('img/tokens.png');
-        background-position: 0px 0px;
-    }
-    .black_token {
-        background-image: url('img/tokens.png');
-        background-position: -20px 0px;
-    }
-    .token {
-        width: 20px;
-        height: 20px;
-        background-repeat: none;
-    }
-*/
-
+.ship {
+	background-color: green;
+	opacity: 1;
+}
 
 
 

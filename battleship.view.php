@@ -93,7 +93,12 @@ class view_battleship_battleship extends game_view {
                 }
                 $this->page->insert_block('gridRow');
             }
-            $this->page->insert_block('grid', array ('GRID_CLASS' => 'grid_' . $a ));
+            if ($a==0) {
+                $cap= self::_("YOUR SHIPS");
+            } else {
+                $cap= self::_("ENEMY SHIPS");
+            }
+            $this->page->insert_block('grid', array ('GRID_CLASS' => 'grid_' . $a, 'GRID_CAPTION' => $cap));
         }
         /*
          *

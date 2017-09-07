@@ -39,29 +39,24 @@
       }
   	} 
   	
-  	// TODO: defines your action entry points there
-
-
-    /*
-    
-    Example:
+  	// --- generated actions begin ---
   	
-    public function myAction()
-    {
-        self::setAjaxMode();     
+  	public function playPlace() {
+  	    self::setAjaxMode();
+  	    $choices = self::getArg('ships', AT_alphanum, true);
+  	    $this->game->action_playPlace( $choices );
+  	    self::ajaxResponse( );
+  	}
+  	
+  	public function playAttack() {
+  	    self::setAjaxMode();
+  	    $card = self::getArg('grid', AT_alphanum, true);
+  	    $this->game->action_playAttack( $card );
+  	    self::ajaxResponse( );
+  	}
 
-        // Retrieve arguments
-        // Note: these arguments correspond to what has been sent through the javascript "ajaxcall" method
-        $arg1 = self::getArg( "myArgument1", AT_posint, true );
-        $arg2 = self::getArg( "myArgument2", AT_posint, true );
-
-        // Then, call the appropriate method in your game logic, like "playCard" or "myAction"
-        $this->game->myAction( $arg1, $arg2 );
-
-        self::ajaxResponse( );
-    }
-    
-    */
+  	
+  	// --- generated actions end ---
 
   }
   

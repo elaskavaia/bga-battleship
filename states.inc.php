@@ -63,36 +63,35 @@ $machinestates = array(
     // Note: ID=2 => your first state
 
     2 => array(
-    		"name" => "playerTurn",
-    		"description" => clienttranslate('${actplayer} must play a card or pass'),
-    		"descriptionmyturn" => clienttranslate('${you} must play a card or pass'),
-    		"type" => "activeplayer",
-    		"possibleactions" => array( "playCard", "pass" ),
-    		"transitions" => array( "playCard" => 2, "pass" => 2 )
+    		"name" => "playerTurnPlace",
+    		"description" => clienttranslate('Other player must place ships'),
+    		"descriptionmyturn" => clienttranslate('${you} must place ships'),
+    		"type" => "multipleactiveplayer",
+            'action' => 'st_MultiPlayerInit',
+            'args' => 'arg_playerTurnPlace',
+    		"possibleactions" => array( "playPlace" ),
+    		"transitions" => array( "next" => 4 )
     ),
-    
-/*
-    Examples:
-    
-    2 => array(
-        "name" => "nextPlayer",
-        "description" => '',
-        "type" => "game",
-        "action" => "stNextPlayer",
-        "updateGameProgression" => true,   
-        "transitions" => array( "endGame" => 99, "nextPlayer" => 10 )
+        
+    3 => array(
+            "name" => "playerTurnAttack",
+            "description" => clienttranslate('${actplayer} must select a grid to fire'),
+            "descriptionmyturn" => clienttranslate('${you} must select a grid to fire'),
+            "type" => "activeplayer",
+            'args' => 'arg_playerTurnAttack',
+            "possibleactions" => array( "playAttack" ),
+            "transitions" => array( "next" => 4, "last" => 99 )
     ),
-    
-    10 => array(
-        "name" => "playerTurn",
-        "description" => clienttranslate('${actplayer} must play a card or pass'),
-        "descriptionmyturn" => clienttranslate('${you} must play a card or pass'),
-        "type" => "activeplayer",
-        "possibleactions" => array( "playCard", "pass" ),
-        "transitions" => array( "playCard" => 2, "pass" => 2 )
-    ), 
-
-*/    
+        
+    4 => array(
+            "name" => "gameTurnNextPlayer",
+            "description" => 'Fire!!!',
+            "type" => "game",
+            "action" => "st_gameTurnNextPlayer",
+            "updateGameProgression" => true,
+            "transitions" => array( "last" => 99, "next" => 3 )
+    ),
+     
    
     // Final state.
     // Please do not modify.
