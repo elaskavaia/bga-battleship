@@ -1,0 +1,130 @@
+/**
+ *------
+ * BGA framework: © Gregory Isabelli <gisabelli@boardgamearena.com> & Emmanuel Colin <ecolin@boardgamearena.com>
+ * BattleShip implementation : © <Your name here> <Your email address here>
+ *
+ * This code has been produced on the BGA studio platform for use on http://boardgamearena.com.
+ * See http://en.boardgamearena.com/#!doc/Studio for more information.
+ * -----
+ *
+ * battleship.css
+ *
+ * BattleShip stylesheet
+ *
+ */
+
+/*
+    This is the CSS stylesheet of your game User Interface.
+    
+    Styles defined on this file will be applied to the HTML elements you define in your
+    HTML template (battleship_battleship.tpl), and to HTML elements you create dynamically
+    (in battleship.js).
+    
+    Usually, you are using CSS to:
+    
+    1°) define the overall layout of your game
+        (ex: place the board on the top left, place player's hand beside, place the deck on the right, ...).
+
+    2°) create your CSS-sprites:
+        All images of your games should be gathered into a small number of image files. Then, using
+        background-image and background-position CSS properties, you create HTML blocks that can 
+        display these images correctly (see example below).
+    
+    3°) ... anything else:
+        It is really easy to add and remove CSS classes dynamically from your Javascript with
+        dojo.addClass and dojo.removeClass. It is also easy to check if an element has a class
+        (dojo.hasClass) or to get all elements with a specific class (dojo.query). This is why,
+        very often, using CSS classes for the logic of your user interface allow you to do complex
+        thing easily.
+        
+        
+     Note: on the production platform, this file will be compressed and comments will be removed.
+           Consequently, don't hesitate to put as many comments as necessary.
+*/
+
+@import url(../../../css/csslayer.css); /* Note: you must not use any @import directive other than this one */
+
+/********* You can start writing your CSS below this line: **********/
+
+.board {
+    /* background-image: url('img/Water_texture.jpg'); */
+    height: 800px;
+    width: 800px;
+}
+
+.board .background-grids {
+    display: inline-block;
+    margin-top: 50px;
+    margin-left: 50px;
+}
+
+.board .background-grids td{
+    border: 1px solid black;
+    vertical-align: middle;
+    text-align: center;
+}
+
+.board .background-grids td .gridPlacement {
+    height: 100%;
+    width: 100%;
+    background-color: blue;
+    opacity: 0.3;
+}
+
+.board .background-grids td.cell-number .gridPlacement, .board .background-grids td.cell-letter .gridPlacement, .board .background-grids td.first-cell .gridPlacement {
+    display: none;
+}
+
+.board .background-grids td.first-cell {
+    border-left: none;
+    border-top: none;
+}
+
+.board .background-grids .grid_0 td {
+    height: 25px;
+    width: 25px;
+}
+
+.board .background-grids .grid_1 {
+    margin-left: 246px;
+    margin-top: -43px;
+}
+
+.board .background-grids .grid_1 td {
+    height: 40px;
+    width: 40px;
+}
+
+.board .background-grids td.cell-first-inside-row {
+    border-top: 2px solid black;
+}
+.board .background-grids td.cell-first-inside-col {
+    border-left: 2px solid black;
+}
+.board .background-grids td.cell-last-inside-row {
+    border-bottom: 2px solid black;
+}
+.board .background-grids td.cell-last-inside-col {
+    border-right: 2px solid black;
+}
+/*
+    Example of CSS sprites (a black token and a white token, 20x20px each, embedded in the same "tokens.png" 40x20px image):
+
+    .white_token {
+        background-image: url('img/tokens.png');
+        background-position: 0px 0px;
+    }
+    .black_token {
+        background-image: url('img/tokens.png');
+        background-position: -20px 0px;
+    }
+    .token {
+        width: 20px;
+        height: 20px;
+        background-repeat: none;
+    }
+*/
+
+
+
+
