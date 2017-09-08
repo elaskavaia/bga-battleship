@@ -28,9 +28,7 @@ class BattleShip extends Table {
         //  the corresponding ID in gameoptions.inc.php.
         // Note: afterwards, you can get/set the global variables with getGameStateValue/setGameStateInitialValue/setGameStateValue
         parent::__construct();
-        self::initGameStateLabels(array (
-            //    "my_first_global_variable" => 10,
-            //    "my_second_global_variable" => 11,
+        self::initGameStateLabels(array ("ship_num" => 10            //    "my_second_global_variable" => 11,
             //      ...
             //    "my_first_game_variant" => 100,
             //    "my_second_game_variant" => 101,
@@ -77,7 +75,7 @@ class BattleShip extends Table {
              * ********** Start the game initialization ****
              */
             // Init global values with their initial values
-            //self::setGameStateInitialValue('trigger_player', 0);
+            self::setGameStateInitialValue('ship_num', 18);
             // INIT GAME STATISTIC
             $all_stats = $this->getStatTypes();
             $player_stats = $all_stats ['player'];
@@ -116,9 +114,25 @@ class BattleShip extends Table {
         $current_player_id = self::getCurrentPlayerId(); // !! We must only return informations visible by this player !!
         // Get information about players
         // Note: you can retrieve some extra field you added for "player" table in "dbmodel.sql" if you need it.
-        $sql = "SELECT player_id id, player_score score FROM player ";
+        $sql = "SELECT player_id id, player_score score, player_color color, player_no no FROM player ";
         $result ['players'] = self::getCollectionFromDb($sql);
-        // TODO: Gather all information about current game situation (visible by player $current_player_id).
+        // Gather all information about current game situation (visible by player $current_player_id).
+        $board_state = array ();
+        $pos = $this->getPlayerPosition($current_player_id);
+        $resall = array ();
+        if ($pos) {
+            $opos = 3 - $pos;
+            $resall = array_merge($resall, $this->tokens->getTokensInLocation("board_${opos}%", 3));
+            $resall = array_merge($resall, $this->tokens->getTokensInLocation("board_${opos}%", 2));
+            $resall = array_merge($resall, $this->tokens->getTokensInLocation("board_${pos}%"));
+        } else {
+            $resall = array_merge($resall, $this->tokens->getTokensInLocation(null, 3));
+            $resall = array_merge($resall, $this->tokens->getTokensInLocation(null, 2));
+        }
+        foreach ( $resall as $key => $info ) {
+            $board_state [$key] = $info ['state'];
+        }
+        $result ['board_state'] = $board_state;
         return $result;
     }
 
@@ -140,14 +154,13 @@ class BattleShip extends Table {
     //////////////////////////////////////////////////////////////////////////////
     //////////// Utility functions
     ////////////    
-    
     public function getNumPlayers() {
         if (! isset($this->players_basic)) {
             $this->players_basic = $this->loadPlayersBasicInfos();
         }
         return count($this->players_basic);
     }
-    
+
     /**
      *
      * @return int - first player in natural player order
@@ -156,7 +169,7 @@ class BattleShip extends Table {
         $table = $this->getNextPlayerTable();
         return $table [0];
     }
-    
+
     function getPlayerColor($player_id) {
         if (! isset($this->players_basic)) {
             $this->players_basic = $this->loadPlayersBasicInfos();
@@ -166,7 +179,17 @@ class BattleShip extends Table {
         }
         return $this->players_basic [$player_id] ['player_color'];
     }
-    
+
+    function getPlayerPosition($player_id) {
+        if (! isset($this->players_basic)) {
+            $this->players_basic = $this->loadPlayersBasicInfos();
+        }
+        if (! isset($this->players_basic [$player_id])) {
+            return 0;
+        }
+        return $this->players_basic [$player_id] ['player_no'];
+    }
+
     function getPlayerName($player_id) {
         if (! isset($this->players_basic)) {
             $this->players_basic = $this->loadPlayersBasicInfos();
@@ -176,7 +199,7 @@ class BattleShip extends Table {
         }
         return $this->players_basic [$player_id] ['player_name'];
     }
-    
+
     function getPlayerIdByColor($color) {
         if (! isset($this->players_basic)) {
             $this->players_basic = $this->loadPlayersBasicInfos();
@@ -192,6 +215,7 @@ class BattleShip extends Table {
         }
         return $this->player_colors [$color];
     }
+
     /*
      * In this space, you can put any utility methods useful for your game logic
      */
@@ -216,6 +240,23 @@ class BattleShip extends Table {
         }
     }
 
+    /**
+     * This will throw an exception if condition is false.
+     * The message should be translated and shown to the user.
+     *
+     * @param $log string
+     *            is
+     *            server side log message, no translation needed
+     * @throws BgaUserException
+     */
+    function userAssertTrue($message, $cond = false, $log = "") {
+        if ($cond)
+            return;
+        if ($log)
+            $this->warn($message . " " . $log);
+        throw new BgaUserException($message);
+    }
+
     function systemAssertTrue($log, $cond = false) {
         if ($cond)
             return;
@@ -227,18 +268,18 @@ class BattleShip extends Table {
         //throw new feException($log);
         throw new BgaUserException(self::_("Internal Error. That should not have happened. Please raise a bug. ") . $log); // TODO remove
     }
-    
+
     function activeNextPlayerCustom() {
         $player_id = $this->getActivePlayerId();
-        
         $next_player_id = $this->getPlayerAfter($player_id);
         if ($this->isEndOfGame($next_player_id)) {
-            return null;
+            $this->notifyAllPlayersWithActive('playAttack', clienttranslate('${player_name} WINS!!!'));
+            return null; //XXX temp disable the end
         }
         $this->setNextActivePlayerCustom($next_player_id);
         return $next_player_id;
     }
-    
+
     function setNextActivePlayerCustom($next_player_id) {
         $this->giveExtraTime($next_player_id);
         $this->incStat(1, 'turns_number', $next_player_id);
@@ -246,9 +287,36 @@ class BattleShip extends Table {
         $this->gamestate->changeActivePlayer($next_player_id);
         $this->trace("====> changed active player to $next_player_id |");
     }
-    
+
     function isEndOfGame($next_player_id) {
-        return false;
+        $player_id = $this->getActivePlayerId();
+        // check if all ships of this player is destroyed
+        //$ship_num = self::getGameStateValue('ship_num');
+        $pos = $this->getPlayerPosition($next_player_id);
+        $ship_num = count($this->tokens->getTokensInLocation("board_${pos}_%", 1));
+        $ship_num += count($this->tokens->getTokensInLocation("board_${pos}_%", 3));
+        //$this->warn("ship num $ship_num");
+        $score = self::dbGetScoreValue($player_id);
+        //$this->warn("score $score");
+        return $score >= $ship_num;
+    }
+
+    function dbGetScoreValue($player_id) {
+        return $this->getUniqueValueFromDB("SELECT player_score FROM player WHERE player_id='$player_id'");
+    }
+
+    function dbSetScoreValue($player_id, $count) {
+        $this->DbQuery("UPDATE player SET player_score='$count' WHERE player_id='$player_id'");
+        $this->setStat($count, 'battle_player_score_total', $player_id);
+    }
+
+    function dbIncScoreValueAndNotify($player_id, $inc, $notif = '') {
+        $count = $this->dbGetScoreValue($player_id);
+        if ($inc != 0) {
+            $count += $inc;
+            $this->dbSetScoreValue($player_id, $count);
+        }
+        $this->notifyAllPlayersWithActive("score", $notif, array ('player_score' => $count,'inc' => $inc ), $player_id);
     }
 
     //////////////////////////////////////////////////////////////////////////////
@@ -261,25 +329,56 @@ class BattleShip extends Table {
     public function action_playPlace($ships) {
         $this->checkAction('playPlace');
         $player_id = $this->getCurrentPlayerId();
-        
+        $pos = $this->getPlayerPosition($player_id);
         // ships in form 
         // fleetship_3_1_3_at_2_3 fleetship_1_2_1_at_4_7 fleetship_2_1_1_at_6_3
         $arr = explode(' ', $ships);
-        $this->systemAssertTrue("Invalid payload", count($arr)>0);
-        foreach ($arr as $key) {
+        $this->systemAssertTrue("Invalid payload", count($arr) > 0);
+        $ship_num = $this->getGameStateValue('ship_num');
+        $this->warn("ship num $ship_num");
+        $this->userAssertTrue(self::_("Not enough ships placed"), count($arr) == $ship_num);
+   
+        foreach ( $arr as $key ) {
             $parts = explode('_at_', $key);
-            $this->systemAssertTrue("Invalid payload", count($parts)==2);
-            $coords = explode('_', $parts[1]);
-            $this->systemAssertTrue("Invalid payload", count($coords)==2);
+            $this->systemAssertTrue("Invalid payload", count($parts) == 2);
+            $coords = explode('_', $parts [1]);
+            $this->systemAssertTrue("Invalid payload", count($coords) == 2);
+            $x = $coords [0];
+            $y = $coords [1];
+            $ship = $parts [0];
+            $dpos = "board_${pos}_${x}_${y}";
+            $this->tokens->createToken($dpos, $dpos, 1);
+            //$this->tokens->createToken("p_${pos}_$ship", $dpos, 10); // just in case we need it
         }
-        $this->notifyAllPlayersWithActive('playPlace', clienttranslate('${player_name} playPlace'), array ());
+        $this->notifyAllPlayersWithActive('playPlace', clienttranslate('${player_name} places ships'), array (), $player_id);
         $this->gamestate->setPlayerNonMultiactive($player_id, 'next');
     }
 
     public function action_playAttack($grid) {
         $this->checkAction('playAttack');
         $player_id = $this->getActivePlayerId();
-        $this->notifyAllPlayersWithActive('playAttack', clienttranslate('${player_name} playAttack'), array ());
+        $pos = $this->getPlayerPosition($player_id);
+        $opos = 3 - $pos;
+        $location = "board_${opos}_$grid";
+        $state = $this->tokens->getTokenState($location);
+        if (! $state) {
+            // missed
+            $this->tokens->createToken($location, $location, 2); // 2 hit and miss
+            $this->notifyAllPlayersWithActive('playAttack', clienttranslate('${player_name} fired at ${pos} and missed'), array (
+                    'pos' => $grid,'grid' => $grid,'state' => 2 ));
+        } else if ($state == 1) {
+            $this->tokens->setTokenState($location, 3);
+            $this->notifyAllPlayersWithActive('playAttack', clienttranslate('${player_name} fired at ${pos} and hit!'), array (
+                    'pos' => $grid,'grid' => $grid,'state' => 3 ));
+            $this->dbIncScoreValueAndNotify($player_id, 1, '');
+        } else if ($state == 3) { // should not happened
+            $this->tokens->setTokenState($location, 3);
+            $this->notifyAllPlayersWithActive('playAttack', clienttranslate('${player_name} fired at ${pos} and hit!'), array (
+                    'pos' => $grid,'grid' => $grid,'state' => 3 ));
+        } else if ($state == 2) { // should not happened, already missed
+            $this->notifyAllPlayersWithActive('playAttack', clienttranslate('${player_name} fired at ${pos} and missed'), array (
+                    'pos' => $grid,'grid' => $grid,'state' => 2 ));
+        }
         $this->gamestate->nextState('next');
     }
 
@@ -327,7 +426,6 @@ class BattleShip extends Table {
         //self::setGameStateValue('camp_played', 0);
         $this->gamestate->nextState('next');
     }
-
 
     //////////////////////////////////////////////////////////////////////////////
     //////////// Zombie
@@ -394,5 +492,20 @@ class BattleShip extends Table {
         //        // Please add your future database scheme changes here
         //
         //
+    }
+}
+
+function startsWith($haystack, $needle) {
+    // search backwards starting from haystack length characters from the end
+    return $needle === "" || strrpos($haystack, $needle, - strlen($haystack)) !== false;
+}
+
+function getPart($haystack, $i) {
+    try {
+        $parts = explode('_', $haystack);
+        return $parts [$i];
+    } catch ( Exception $e ) {
+        $this->dump('err', $e);
+        return '';
     }
 }

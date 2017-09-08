@@ -105,6 +105,10 @@ html, .mode_3d #game_play_area_background {
 	background-color: #c8e5ed;
 	/* opacity: 0.3; */
 	pointer-events: bounding-box;
+	line-height: 26px;
+}
+.grid_1 .gridPlacement {
+	line-height: 40px;
 }
 
 .grid td.cell-number .gridPlacement, .grid td.cell-letter .gridPlacement,
@@ -164,6 +168,18 @@ html, .mode_3d #game_play_area_background {
 
 .ship.error {
 	background-color: red;
+}
+
+.state_2::after {
+	content: "-";
+}
+
+.state_3 {
+	background-color: red;
+}
+
+.state_3::after {
+		content: "X";
 }
 
 .grid_1 td {

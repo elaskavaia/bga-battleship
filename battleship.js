@@ -63,6 +63,17 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
 
         setup : function(gamedatas) {
             console.log("Starting game setup");
+            console.log(gamedatas);
+
+            this.gamedatas = gamedatas;
+
+            if (this.isSpectator) {
+                this.player_color = 'ffffff';
+                this.player_no = 1;
+            } else {
+                this.player_color = gamedatas.players[this.player_id].color;
+                this.player_no = gamedatas.players[this.player_id].no;
+            }
 
             // Setting up player boards
             for ( var player_id in gamedatas.players) {
@@ -70,8 +81,28 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
 
                 // TODO: Setting up players boards if needed
             }
-
             // TODO: Set up your game interface here, according to "gamedatas"
+            for ( var loc in gamedatas.board_state) {
+                var state = gamedatas.board_state[loc];
+
+                var sloc = loc.split('_');
+                var grid = "";
+                if (sloc[1] == this.player_no) {
+                    // my board
+                    grid = this.gridId(0, sloc[2], sloc[3]);
+                } else {
+                    grid = this.gridId(1, sloc[2], sloc[3]);
+                }
+
+                console.log(loc + " " + grid + "->" + state);
+                this.changeTokenStateTo(grid, state);
+
+                if (state == 1) {
+                    var gpos = this.gridPosition(grid);
+                    this.setShipOnGrid(gpos, 's');
+                }
+            }
+
             this.markupBoard();
             // Connect
             this.connectClass('gridPlacement', 'onclick', 'onGrid');
@@ -162,10 +193,10 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
             var node = $(id);
             var gpos = this.gridPosition(id);
             var ship = this.getShipOnGrid(gpos);
-            //console.log(gpos);
+            // console.log(gpos);
             if (ship) {
                 this.setShipOnGrid(gpos, null);
-               
+
                 var nei = this.gridNei(gpos, this.gridDiagOffsets);
                 var neires = nei.res.concat(this.gridNei(gpos, this.gridOffsets).res);
                 for ( var i in neires) {
@@ -180,7 +211,7 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
             this.markupBoard();
         },
         placeShip : function(gpos) {
-            console.log("place on "+gpos.x+" "+gpos.y);
+            console.log("place on " + gpos.x + " " + gpos.y);
             this.setShipOnGrid(gpos, 'x');
             var nei = this.gridNei(gpos, this.gridDiagOffsets);
             if (nei.count > 0) {
@@ -302,7 +333,7 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
                         dojo.addClass(nid, 'ship');
                         if (ship == 'x') {
                             dojo.addClass(nid, 'error');
-                        } else {
+                        } else if (ship.startsWith('fleet')) {
                             dojo.addClass(ship, 'used');
                         }
                     }
@@ -319,6 +350,9 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
         },
 
         setShipOnGrid : function(gpos, ship) {
+            if (!this.gridToFleet[gpos.x]) {
+                this.gridToFleet[gpos.x] = [];
+            }
             this.gridToFleet[gpos.x][gpos.y] = ship;
 
         },
@@ -351,7 +385,7 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
             };
         },
         gridId : function(own, x, y) {
-            var yL = String.fromCharCode(y + 64);
+            var yL = String.fromCharCode(parseInt(y) + 64);
             return "grid_" + own + "_" + yL + "_" + x;
         },
         gridPosition : function(id) {
@@ -413,12 +447,19 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
                         var token = restoreList[i];
 
                         var tokenInfo = this.gamedatas.tokens[token];
-                        //this.placeTokenWithTips(token, tokenInfo, true);
+                        // this.placeTokenWithTips(token, tokenInfo, true);
                     }
                 }
 
             }
             this.restoreServerGameState();
+        },
+
+        /**
+         * Convenient method to get state name
+         */
+        getStateName : function() {
+            return this.gamedatas.gamestate.name;
         },
         // /////////////////////////////////////////////////
         // // Player's action
@@ -436,11 +477,24 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
             dojo.stopEvent(event);
 
             var ss = id.split('_');
-            if (ss[1] != '0') {
-                this.showMoveUnauthorized();
-                return;
+            if (this.getStateName() == 'playerTurnPlace') {
+                if (ss[1] != '0') {
+                    this.showMoveUnauthorized();
+                    return;
+                }
+                this.reconcileShips(id)
+            } else {
+                if (ss[1] != '1') {
+                    this.showMoveUnauthorized();
+                    return;
+                }
+                var gpos = this.gridPosition(id);
+                var grid = gpos.x + "_" + gpos.y;
+                this.ajaxAction('playAttack', {
+                    grid : grid
+                });
             }
-            this.reconcileShips(id);
+
         },
 
         onDone : function(event) {
@@ -456,12 +510,14 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
                     };
                     var ship = this.getShipOnGrid(gpos);
                     if (ship) {
-                        choices+=" "+ship+"_at_"+gpos.x+"_"+gpos.y;
+                        choices += " " + ship + "_at_" + gpos.x + "_" + gpos.y;
                     }
                 }
             }
-            console.log("sending "+choices);
-            this.ajaxAction('playPlace', { ships: choices.trim() });
+            console.log("sending " + choices);
+            this.ajaxAction('playPlace', {
+                ships : choices.trim()
+            });
         },
         onCancel : function(event) {
             var id = event.currentTarget.id;
@@ -485,8 +541,8 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
             // TODO: here, associate your game notifications with local methods
 
             // Example 1: standard notification handling
-            // dojo.subscribe( 'cardPlayed', this, "notif_cardPlayed" );
-
+            dojo.subscribe('playAttack', this, "notif_playAttack");
+            dojo.subscribe('score', this, "notif_score");
             // Example 2: standard notification handling + tell the user interface to wait
             // during 3 seconds after calling the method in order to let the players
             // see what is happening in the game.
@@ -495,15 +551,51 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
             // 
         },
 
-    // TODO: from this point and below, you can write your game notifications handling methods
+        // TODO: from this point and below, you can write your game notifications handling methods
 
-    /*
-     * Example:
-     * 
-     * notif_cardPlayed: function( notif ) { console.log( 'notif_cardPlayed' ); console.log( notif ); // Note: notif.args contains the
-     * arguments specified during you "notifyAllPlayers" / "notifyPlayer" PHP call // TODO: play the card in the user interface. },
-     * 
-     */
+        notif_playAttack : function(notif) {
+            console.log('notif_playAttack');
+            console.log(notif); // Note: notif.args contains the
+            var state = parseInt(notif.args.state);
+            var grid = notif.args.grid;
+            var sgrid = grid.split("_");
+            if (notif.args.player_id == this.player_id) {
+                var loc = this.gridId(1, sgrid[0], sgrid[1]);
+                this.changeTokenStateTo(loc, state);
+            } else {
+                var loc = this.gridId(0, sgrid[0], sgrid[1]);
+                this.changeTokenStateTo(loc, state);
+            }
+
+            // arguments specified during you "notifyAllPlayers" / "notifyPlayer" PHP call // TODO: play the card in the user interface.
+        },
+        
+        notif_score : function(notif) {
+            this.scoreCtrl[notif.args.player_id].setValue(notif.args.player_score);
+        },
+
+        changeTokenStateTo : function(token, newState) {
+            var node = $(token);
+            // console.log(token + "|=>" + newState);
+            if (!node) return;
+            if (this.on_client_state) {
+                if (this.restoreList.indexOf(token) < 0) {
+                    this.restoreList.push(token);
+                }
+            }
+
+            var arr = node.className.split(' ');
+            for (var i = 0; i < arr.length; i++) {
+                var cl = arr[i];
+                if (cl.startsWith("state_")) {
+                    dojo.removeClass(token, cl);
+                }
+            }
+
+            newState = parseInt(newState);
+            dojo.addClass(token, "state_" + newState);
+
+        },
 
     });
 });
