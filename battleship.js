@@ -365,6 +365,61 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
             };
         },
 
+        /** More convenient version of ajaxcall, do not to specify game name, and any of the handlers */
+
+        ajaxAction : function(action, args, func, err) {
+            // console.log("ajax action " + action);
+            if (!args) {
+                args = [];
+            }
+            // console.log(args);
+            delete args.action;
+            args.lock = true;
+            if (typeof func == "undefined" || func == null) {
+                func = function(result) {
+
+                };
+            }
+
+            if (this.on_client_state) {
+                // restore server server if error happened
+                if (typeof err == "undefined") {
+                    var self = this;
+                    err = function(iserr, message) {
+                        if (iserr) {
+                            console.log('restoring server state, error: ' + message);
+                            self.cancelLocalStateEffects();
+                        }
+                    };
+                }
+            }
+            var name = this.game_name;
+            if (this.checkAction(action)) {
+                // args.lock = true;
+                this.ajaxcall("/" + name + "/" + name + "/" + action + ".html", args,// 
+                this, func, err);
+            }
+        },
+
+        cancelLocalStateEffects : function() {
+            if (this.on_client_state) {
+                this.clientStateArgs = null;
+                this.gamedatas_local = dojo.clone(this.gamedatas);
+                if (this.restoreList) {
+                    var restoreList = this.restoreList;
+
+                    this.restoreList = [];
+                    for (var i = 0; i < restoreList.length; i++) {
+                        var token = restoreList[i];
+
+                        var tokenInfo = this.gamedatas.tokens[token];
+                        //this.placeTokenWithTips(token, tokenInfo, true);
+                    }
+                }
+
+            }
+            this.restoreServerGameState();
+        },
         // /////////////////////////////////////////////////
         // // Player's action
         /*
@@ -392,6 +447,21 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
             var id = event.currentTarget.id;
             console.log('onDone ' + id);
             dojo.stopEvent(event);
+            var choices = "";
+            for (var x = 1; x <= 10; x++) {
+                for (var y = 1; y <= 10; y++) {
+                    var gpos = {
+                        x : x,
+                        y : y
+                    };
+                    var ship = this.getShipOnGrid(gpos);
+                    if (ship) {
+                        choices+=" "+ship+"_at_"+gpos.x+"_"+gpos.y;
+                    }
+                }
+            }
+            console.log("sending "+choices);
+            this.ajaxAction('playPlace', { ships: choices.trim() });
         },
         onCancel : function(event) {
             var id = event.currentTarget.id;

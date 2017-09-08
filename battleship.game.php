@@ -88,15 +88,11 @@ class BattleShip extends Table {
             }
             $this->initStat('player', 'turns_number', 0);
             $this->initStat('table', 'turns_number', 0);
-
-            
             // Setup the initial game situation here
             //$this->initTables();
-            
             $this->activeNextPlayer();
             $this->incStat(1, 'turns_number', $this->getActivePlayerId());
             $this->incStat(1, 'turns_number');
-
         } catch ( Exception $e ) {
             $this->dump('err', $e);
         }
@@ -144,9 +140,117 @@ class BattleShip extends Table {
     //////////////////////////////////////////////////////////////////////////////
     //////////// Utility functions
     ////////////    
+    
+    public function getNumPlayers() {
+        if (! isset($this->players_basic)) {
+            $this->players_basic = $this->loadPlayersBasicInfos();
+        }
+        return count($this->players_basic);
+    }
+    
+    /**
+     *
+     * @return int - first player in natural player order
+     */
+    function getFirstPlayer() {
+        $table = $this->getNextPlayerTable();
+        return $table [0];
+    }
+    
+    function getPlayerColor($player_id) {
+        if (! isset($this->players_basic)) {
+            $this->players_basic = $this->loadPlayersBasicInfos();
+        }
+        if (! isset($this->players_basic [$player_id])) {
+            return 0;
+        }
+        return $this->players_basic [$player_id] ['player_color'];
+    }
+    
+    function getPlayerName($player_id) {
+        if (! isset($this->players_basic)) {
+            $this->players_basic = $this->loadPlayersBasicInfos();
+        }
+        if (! isset($this->players_basic [$player_id])) {
+            return "unknown";
+        }
+        return $this->players_basic [$player_id] ['player_name'];
+    }
+    
+    function getPlayerIdByColor($color) {
+        if (! isset($this->players_basic)) {
+            $this->players_basic = $this->loadPlayersBasicInfos();
+        }
+        if (! isset($this->player_colors)) {
+            $this->player_colors = array ();
+            foreach ( $this->players_basic as $player_id => $info ) {
+                $this->player_colors [$info ['player_color']] = $player_id;
+            }
+        }
+        if (! isset($this->player_colors [$color])) {
+            return 0;
+        }
+        return $this->player_colors [$color];
+    }
     /*
      * In this space, you can put any utility methods useful for your game logic
      */
+    function notifyAllPlayersWithActive($type, $message = '', $args = null, $player_id = -1) {
+        if ($this->gameinit)
+            return;
+        if ($args == null)
+            $args = array ();
+        $this->systemAssertTrue("Invalid notification signature", is_array($args));
+        if ($player_id == - 1)
+            $player_id = $this->getActivePlayerId();
+        $args ['player_id'] = $player_id;
+        if ($message) {
+            $player_name = $this->getPlayerName($player_id);
+            $args ['player_name'] = $player_name;
+        }
+        if (isset($args ['_private'])) {
+            unset($args ['_private']);
+            $this->notifyPlayer($player_id, $type, $message, $args);
+        } else {
+            $this->notifyAllPlayers($type, $message, $args);
+        }
+    }
+
+    function systemAssertTrue($log, $cond = false) {
+        if ($cond)
+            return;
+        $move = $this->getGameStateValue('move_nbr');
+        //trigger_error("bt") ;
+        //$bt = debug_backtrace();
+        //$this->dump('bt',$bt);
+        $this->error("Internal Error during move $move: $log|");
+        //throw new feException($log);
+        throw new BgaUserException(self::_("Internal Error. That should not have happened. Please raise a bug. ") . $log); // TODO remove
+    }
+    
+    function activeNextPlayerCustom() {
+        $player_id = $this->getActivePlayerId();
+        
+        $next_player_id = $this->getPlayerAfter($player_id);
+        if ($this->isEndOfGame($next_player_id)) {
+            return null;
+        }
+        $this->setNextActivePlayerCustom($next_player_id);
+        return $next_player_id;
+    }
+    
+    function setNextActivePlayerCustom($next_player_id) {
+        $this->giveExtraTime($next_player_id);
+        $this->incStat(1, 'turns_number', $next_player_id);
+        $this->incStat(1, 'turns_number');
+        $this->gamestate->changeActivePlayer($next_player_id);
+        $this->trace("====> changed active player to $next_player_id |");
+    }
+    
+    function isEndOfGame($next_player_id) {
+        return false;
+    }
+
     //////////////////////////////////////////////////////////////////////////////
     //////////// Player actions
     //////////// 
@@ -154,40 +258,48 @@ class BattleShip extends Table {
      * Each time a player is doing some game action, one of the methods below is called.
      * (note: each method below must match an input method in battleship.action.php)
      */
-    
     public function action_playPlace($ships) {
         $this->checkAction('playPlace');
-        $player_id = $this->getActivePlayerId();
+        $player_id = $this->getCurrentPlayerId();
+        
+        // ships in form 
+        // fleetship_3_1_3_at_2_3 fleetship_1_2_1_at_4_7 fleetship_2_1_1_at_6_3
+        $arr = explode(' ', $ships);
+        $this->systemAssertTrue("Invalid payload", count($arr)>0);
+        foreach ($arr as $key) {
+            $parts = explode('_at_', $key);
+            $this->systemAssertTrue("Invalid payload", count($parts)==2);
+            $coords = explode('_', $parts[1]);
+            $this->systemAssertTrue("Invalid payload", count($coords)==2);
+        }
         $this->notifyAllPlayersWithActive('playPlace', clienttranslate('${player_name} playPlace'), array ());
         $this->gamestate->setPlayerNonMultiactive($player_id, 'next');
     }
-    
+
     public function action_playAttack($grid) {
         $this->checkAction('playAttack');
         $player_id = $this->getActivePlayerId();
         $this->notifyAllPlayersWithActive('playAttack', clienttranslate('${player_name} playAttack'), array ());
         $this->gamestate->nextState('next');
     }
-    /*
 
-    //////////////////////////////////////////////////////////////////////////////
-    //////////// Game state arguments
-    ////////////
     /*
+     *
+     * //////////////////////////////////////////////////////////////////////////////
+     * //////////// Game state arguments
+     * ////////////
+     * /*
      * Here, you can create methods defined as "game state arguments" (see "args" property in states.inc.php).
      * These methods function is to return some additional information that is specific to the current
      * game state.
      */
-    
-    function arg_playerTurnPlace(){
-        return array();
+    function arg_playerTurnPlace() {
+        return array ();
     }
-    
-    
-    function arg_playerTurnAttack(){
-        return array();
+
+    function arg_playerTurnAttack() {
+        return array ();
     }
-    
 
     //////////////////////////////////////////////////////////////////////////////
     //////////// Game state actions
@@ -213,31 +325,9 @@ class BattleShip extends Table {
             return;
         }
         //self::setGameStateValue('camp_played', 0);
-
         $this->gamestate->nextState('next');
     }
-    
-    function activeNextPlayerCustom() {
-        $player_id = $this->getActivePlayerId();
-        
-        $next_player_id = $this->getPlayerAfter($player_id);
-        if ($this->isEndOfGame($next_player_id)) {
-            return null;
-        }
-        $this->setNextActivePlayerCustom($next_player_id);
-        return $next_player_id;
-    }
-    
-    function isEndOfGame($next_player_id) {
-        return false; // XXX
-    }
-    
-    function setNextActivePlayerCustom($next_player_id) {
-        $this->giveExtraTime($next_player_id);
-        $this->incStat(1, 'turns_number', $next_player_id);
-        $this->incStat(1, 'turns_number');
-        $this->gamestate->changeActivePlayer($next_player_id);
-    }
+
 
     //////////////////////////////////////////////////////////////////////////////
     //////////// Zombie

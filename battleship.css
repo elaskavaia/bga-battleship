@@ -47,7 +47,7 @@
 /********* You can start writing your CSS below this line: **********/
 
 html, .mode_3d #game_play_area_background {
-	background-image: url(img/bg.jpg); 
+	/* background-image: url(img/bg.jpg); */ 
 	background-color: #f8f8f8;
 }
 
@@ -56,11 +56,13 @@ html, .mode_3d #game_play_area_background {
 	height: 800px;
 	width: 700px;
 	margin: auto;
+	background-image: url(img/tiny_grid.png); 
+	padding:  26px;
 }
 
 .board caption {
 	text-align: right;
-	height: 20px;
+	height: 26px;
 }
 
 .background-grids {
@@ -74,19 +76,21 @@ html, .mode_3d #game_play_area_background {
 }
 
 .grid_0 {
-	width: 290px;
+	width: 296px;
+	height: 322px;
 }
 
 .grid_1 {
-	left: 246px;
-	top: 246px;
-	width: 454px;
+    left: 254px;
+    top: 257px;
+    width: 454px;
+    height: 480px;
 	pointer-events: none;
 }
 
 .fleet {
 	right: 0px;
-	top: 45px;
+	top: 52px;
 }
 
 .background-grids td {
@@ -115,13 +119,13 @@ html, .mode_3d #game_play_area_background {
 }
 
 .grid_0 td {
-	height: 25px;
-	width: 25px;
+	height: 26px;
+	width: 26px;
 }
 
 .fleet td {
-	height: 25px;
-	width: 25px;
+	height: 26px;
+	width: 26px;
 }
 
 .fleet td:first-child {
@@ -140,10 +144,15 @@ html, .mode_3d #game_play_area_background {
 
 .fleetship,.ship {	
 	background: white;
+	/*
     outline-color: black;
     outline-width: 2px;
     outline-style: solid;
-    height: 24px;
+    */
+    
+    box-shadow:inset 0px 0px 0px 2px black;
+     
+    height: 26px;
     vertical-align: middle;
     text-align: center;
     
