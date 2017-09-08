@@ -100,6 +100,9 @@ class view_battleship_battleship extends game_view {
             }
             $this->page->insert_block('grid', array ('GRID_CLASS' => 'grid_' . $a, 'GRID_CAPTION' => $cap));
         }
+        
+        $this->tpl['FLEET_CAPTION'] = self::_("FLEET");
+        
         /*
          *
          * // Examples: set the value of some element defined in your tpl file like this: {MY_VARIABLE_ELEMENT}
@@ -108,7 +111,7 @@ class view_battleship_battleship extends game_view {
          * $this->tpl['MY_VARIABLE_ELEMENT'] = $number_to_display;
          *
          * // Display a string to be translated in all languages:
-         * $this->tpl['MY_VARIABLE_ELEMENT'] = self::_("A string to be translated");
+         * 
          *
          * // Display some HTML content of your own:
          * $this->tpl['MY_VARIABLE_ELEMENT'] = self::raw( $some_html_code );

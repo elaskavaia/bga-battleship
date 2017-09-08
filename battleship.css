@@ -41,79 +41,140 @@
      Note: on the production platform, this file will be compressed and comments will be removed.
            Consequently, don't hesitate to put as many comments as necessary.
 */
-
-@import url(../../../css/csslayer.css); /* Note: you must not use any @import directive other than this one */
+@import url(../../../css/csslayer.css);
+/* Note: you must not use any @import directive other than this one */
 
 /********* You can start writing your CSS below this line: **********/
 
-.board {
-    /* background-image: url('img/Water_texture.jpg'); */
-    height: 800px;
-    width: 800px;
+html, .mode_3d #game_play_area_background {
+	background-image: url(img/bg.jpg); 
+	background-color: #f8f8f8;
 }
-.grid caption {
+
+.board {
+	/* background-image: url('img/Water_texture.jpg'); */
+	height: 800px;
+	width: 700px;
+	margin: auto;
+}
+
+.board caption {
 	text-align: right;
 	height: 20px;
 }
+
 .background-grids {
-    display: inline-block;
-    margin-top: 50px;
-    margin-left: 50px;
+	position: relative;
 }
 
-.background-grids td{
-    border: 1px solid black;
-    vertical-align: middle;
-    text-align: center;
+.background-grids>* {
+	display: block;
+	vertical-align: top;
+	position: absolute;
+}
+
+.grid_0 {
+	width: 290px;
+}
+
+.grid_1 {
+	left: 246px;
+	top: 246px;
+	width: 454px;
+	pointer-events: none;
+}
+
+.fleet {
+	right: 0px;
+	top: 45px;
+}
+
+.background-grids td {
+	border: 1px solid black;
+	vertical-align: middle;
+	text-align: center;
 }
 
 .gridPlacement {
-    height: 100%;
-    width: 100%;
-    background-color: blue;
-    opacity: 0.3;
+	height: 100%;
+	width: 100%;
+	background-color: #c8e5ed;
+	/* opacity: 0.3; */
+	pointer-events: bounding-box;
 }
 
-.board .background-grids td.cell-number .gridPlacement, .board .background-grids td.cell-letter .gridPlacement, .board .background-grids td.first-cell .gridPlacement {
-    display: none;
+.grid td.cell-number .gridPlacement, .grid td.cell-letter .gridPlacement,
+	.grid td.first-cell .gridPlacement {
+	display: none;
 }
 
-.board .background-grids td.first-cell {
-    border-left: none;
-    border-top: none;
+.grid td.first-cell {
+	border-left: none;
+	border-top: none;
+	pointer-events: none;
 }
 
-.board .background-grids .grid_0 td {
-    height: 25px;
-    width: 25px;
+.grid_0 td {
+	height: 25px;
+	width: 25px;
 }
 
-.board .background-grids .grid_1 {
-    margin-left: 246px;
-    margin-top: -63px;
+.fleet td {
+	height: 25px;
+	width: 25px;
 }
 
-.board .background-grids .grid_1 td {
-    height: 40px;
-    width: 40px;
+.fleet td:first-child {
+	padding: 0px 5px 0px 5px;
 }
 
-.board .background-grids td.cell-first-inside-row {
-    border-top: 2px solid black;
-}
-.board .background-grids td.cell-first-inside-col {
-    border-left: 2px solid black;
-}
-.board .background-grids td.cell-last-inside-row {
-    border-bottom: 2px solid black;
-}
-.board .background-grids td.cell-last-inside-col {
-    border-right: 2px solid black;
-}
-.ship {
-	background-color: green;
-	opacity: 1;
+.fleet td.fleetship_name {
+	width: 120px;
+	padding: 0px 5px 0px 5px;
+	text-align: left;
 }
 
+.fleet tr {
 
+}
+
+.fleetship,.ship {	
+	background: white;
+    outline-color: black;
+    outline-width: 2px;
+    outline-style: solid;
+    height: 24px;
+    vertical-align: middle;
+    text-align: center;
+    
+}
+
+.fleetship.used {
+	background-color: gray;
+}
+
+.ship.error {
+	background-color: red;
+}
+
+.grid_1 td {
+	height: 40px;
+	width: 40px;
+}
+
+.grid td.cell-first-inside-row {
+	border-top: 2px solid black;
+}
+
+.grid td.cell-first-inside-col {
+	border-left: 2px solid black;
+}
+
+.grid td.cell-last-inside-row {
+	border-bottom: 2px solid black;
+}
+
+.grid td.cell-last-inside-col {
+	border-right: 2px solid black;
+}
 
