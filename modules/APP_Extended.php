@@ -143,7 +143,6 @@ abstract class APP_Extended extends Table {
     
     function dbSetScoreValue($player_id, $count) {
         $this->DbQuery("UPDATE player SET player_score='$count' WHERE player_id='$player_id'");
-        $this->setStat($count, 'battle_player_score_total', $player_id);
     }
     
     function dbIncScoreValueAndNotify($player_id, $inc, $notif = '') {

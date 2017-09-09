@@ -2,7 +2,7 @@
 /**
  *------
  * BGA framework: © Gregory Isabelli <gisabelli@boardgamearena.com> & Emmanuel Colin <ecolin@boardgamearena.com>
- * BattleShip implementation : © <Your name here> <Your email address here>
+ * BattleShip implementation : © Alena Laskavaia <laskava@gmail.com>
  * 
  * This code has been produced on the BGA studio platform for use on http://boardgamearena.com.
  * See http://en.boardgamearena.com/#!doc/Studio for more information.
@@ -101,13 +101,9 @@ class BattleShip extends APP_Extended {
     function initTables() {
         // Create ships
         $shipconfg = array (5 => 1,4 => 1,3 => 1,2 => 2,1 => 2 );
-
         for ($p = 1; $p <= 2; $p ++) {
-
             foreach ( $shipconfg as $size => $num ) {
-                for ($x = 0; $x < $num; $x ++) {
-                    $this->tokens->createTokensPack("fleet_${p}_fleetship_${size}_${x}_{INDEX}", "fleet", $size, 1);
-                }
+                $this->tokens->createTokensPack("fleet_${p}_fleetship_${size}_{INDEX}", "fleet", $num, 1);
             }
             // Board
             for ($x = 1; $x <= 10; $x ++) {
@@ -163,8 +159,14 @@ class BattleShip extends APP_Extended {
      * (see states.inc.php)
      */
     function getGameProgression() {
-        // TODO: compute and return the game progression
-        return 0;
+        
+        $ship_num = self::getGameStateValue('ship_num');
+        
+      
+        $ship_num1 = count($this->tokens->getTokensInLocation("board_1", 1));
+        $ship_num2 = count($this->tokens->getTokensInLocation("board_1", 1));
+        
+        return ($ship_num1+$ship_num2)/$ship_num*2*100;
     }
 
     //////////////////////////////////////////////////////////////////////////////
@@ -195,11 +197,40 @@ class BattleShip extends APP_Extended {
         //$ship_num = self::getGameStateValue('ship_num');
         $pos = $this->getPlayerPosition($next_player_id);
         $ship_num = count($this->tokens->getTokensInLocation("board_${pos}", 1));
-        $ship_num += count($this->tokens->getTokensInLocation("board_${pos}", 3));
-        $this->warn("ship num found hit $ship_num");
-        $score = self::dbGetScoreValue($player_id);
-        $this->warn("score $score");
-        return $score >= $ship_num;
+        return $ship_num == 0;
+    }
+    
+    function isShipSunk($location) {
+        $parts = explode('_', $location);
+        $opos = $parts[1];
+        $x=$parts[2];
+        $y=$parts[3];
+        //
+        $x2=$x-1;
+        $y2=$y;
+        $location = "board_${opos}_${x2}_${y2}";
+        $state = $this->tokens->getTokenState($location);
+        if ($state==1) return false;
+        //
+        $x2=$x+1;
+        $y2=$y;
+        $location = "board_${opos}_${x2}_${y2}";
+        $state = $this->tokens->getTokenState($location);
+        if ($state==1) return false;
+        //
+        $x2=$x;
+        $y2=$y-1;
+        $location = "board_${opos}_${x2}_${y2}";
+        $state = $this->tokens->getTokenState($location);
+        if ($state==1) return false;
+        //
+        $x2=$x;
+        $y2=$y+1;
+        $location = "board_${opos}_${x2}_${y2}";
+        $state = $this->tokens->getTokenState($location);
+        if ($state==1) return false;
+        
+        return true;
     }
 
     //////////////////////////////////////////////////////////////////////////////
@@ -219,8 +250,9 @@ class BattleShip extends APP_Extended {
         $this->systemAssertTrue("Invalid payload", count($arr) > 0);
         $ship_num = $this->getGameStateValue('ship_num');
         $this->warn("ship num $ship_num");
-        //$this->userAssertTrue(self::_("Not enough ships placed"), count($arr) == $ship_num);
+        $this->userAssertTrue(self::_("Not enough ships placed"), count($arr) == $ship_num);
         foreach ( $arr as $key ) {
+            $this->userAssertTrue(self::_("Placement error"), $key !== 'x');
             $parts = explode('_at_', $key);
             $this->systemAssertTrue("Invalid payload", count($parts) == 2);
             $coords = explode('_', $parts [1]);
@@ -230,36 +262,43 @@ class BattleShip extends APP_Extended {
             $ship = $parts [0];
             $dpos = "board_${pos}_${x}_${y}";
             $this->tokens->setTokenState($dpos, 1);
-            $this->tokens->setTokenState("fleet_${pos}_$ship", 10); // just in case we need it
+            $shipparts = explode('_', $ship);
+            unset($shipparts [3]);
+            $shipclass = implode('_', $shipparts);
+            $this->tokens->setTokenState("fleet_${pos}_$shipclass", $shipparts [1]);
         }
-        $this->notifyWithName('playPlace', clienttranslate('${player_name} places ships'), array (), $player_id);
+        $this->notifyWithName('playPlace', clienttranslate('${player_name} placed ships'), array (), $player_id);
         $this->gamestate->setPlayerNonMultiactive($player_id, 'next');
     }
 
     public function action_playAttack($grid) {
         $this->checkAction('playAttack');
         $this->systemAssertTrue("Invalid payload", $grid != null);
+        $gridparts = explode('_', $grid);
+        $this->systemAssertTrue("Invalid payload", count($gridparts)==2);
         $player_id = $this->getActivePlayerId();
         $pos = $this->getPlayerPosition($player_id);
         $opos = 3 - $pos;
         $location = "board_${opos}_$grid";
         $state = $this->tokens->getTokenState($location);
-        if (! $state) {
+        $hgrid = chr($gridparts[1]+64).$gridparts[0];
+        if (! $state || $state == 2) {
             // missed
-            $this->tokens->setTokenState($location, 2); // 2 hit and miss
+            $state=2;
+            $this->tokens->setTokenState($location, $state); // 2 hit and miss
             $this->notifyWithName('playAttack', clienttranslate('${player_name} fired at ${pos} and missed'), array (
-                    'pos' => $grid,'grid' => $grid,'state' => 2 ));
-        } else if ($state == 1) {
-            $this->tokens->setTokenState($location, 3);
-            $this->notifyWithName('playAttack', clienttranslate('${player_name} fired at ${pos} and hit!'), array (
-                    'pos' => $grid,'grid' => $grid,'state' => 3 ));
+                    'pos' => $hgrid,'grid' => $grid,'state' => $state ,'last'=>false));
+            $this->incStat(1, 'battle_player_miss', $player_id);
+        } else if ($state == 1 || $state == 3) {
+            $state=3;
+            $this->tokens->setTokenState($location, $state);
+            $sunk = $this->isShipSunk($location);
+            if ($sunk) $message = clienttranslate('${player_name} fired at ${pos} and sunk the ship!');
+            else $message = clienttranslate('${player_name} fired at ${pos} and hit!');
+            $this->notifyWithName('playAttack', $message, array (
+                    'pos' => $hgrid,'grid' => $grid,'state' => $state, 'last'=>$sunk ));
             $this->dbIncScoreValueAndNotify($player_id, 1, '');
-        } else if ($state == 3) { // should not happened
-            $this->notifyWithName('playAttack', clienttranslate('${player_name} fired at ${pos} and hit!'), array (
-                    'pos' => $grid,'grid' => $grid,'state' => 3 ));
-        } else if ($state == 2) { // should not happened, already missed
-            $this->notifyWithName('playAttack', clienttranslate('${player_name} fired at ${pos} and missed'), array (
-                    'pos' => $grid,'grid' => $grid,'state' => 2 ));
+            $this->incStat(1, 'battle_player_score_total', $player_id);
         }
         $this->gamestate->nextState('next');
     }
@@ -309,8 +348,8 @@ class BattleShip extends APP_Extended {
         if ($next_player_id == null) {
             // end of game
             $this->notifyWithName('playLog', clienttranslate('${player_name} WINS!!!'));
-            //             $this->gamestate->nextState('last'); // XXX fix
-            //             return;
+            $this->gamestate->nextState('last'); // XXX fix
+            return;
         }
         $this->gamestate->nextState('next');
     }
