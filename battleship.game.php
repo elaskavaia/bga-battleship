@@ -30,7 +30,7 @@ class BattleShip extends APP_Extended {
         // Note: afterwards, you can get/set the global variables with getGameStateValue/setGameStateInitialValue/setGameStateValue
         parent::__construct();
         self::initGameStateLabels(array ( //
-"ship_num" => 10, //      ...
+"ship_num" => 10 //      ...
             //    "my_first_game_variant" => 100,
             //    "my_second_game_variant" => 101,
             //      ...
@@ -71,31 +71,27 @@ class BattleShip extends APP_Extended {
         self::reattributeColorsBasedOnPreferences($players, $gameinfos ['player_colors']);
         self::reloadPlayersBasicInfos();
         $this->gameinit = true;
-        try {
-            /**
-             * ********** Start the game initialization ****
-             */
-            // Init global values with their initial values
-            self::setGameStateInitialValue('ship_num', 18);
-            // INIT GAME STATISTIC
-            $all_stats = $this->getStatTypes();
-            $player_stats = $all_stats ['player'];
-            foreach ( $player_stats as $key => $value ) {
-                if (startsWith($key, 'battle')) {
-                    $this->initStat('player', $key, 0);
-                }
+        /**
+         * ********** Start the game initialization ****
+         */
+        // Init global values with their initial values
+        self::setGameStateInitialValue('ship_num', 18);
+        // INIT GAME STATISTIC
+        $all_stats = $this->getStatTypes();
+        $player_stats = $all_stats ['player'];
+        foreach ( $player_stats as $key => $value ) {
+            if (startsWith($key, 'battle')) {
+                $this->initStat('player', $key, 0);
             }
-            $this->initStat('player', 'turns_number', 0);
-            $this->initStat('table', 'turns_number', 0);
-            // Setup the initial game situation here
-            $this->initTables();
-            // activate
-            $this->activeNextPlayer();
-            $this->incStat(1, 'turns_number', $this->getActivePlayerId());
-            $this->incStat(1, 'turns_number');
-        } catch ( Exception $e ) {
-            $this->dump('err', $e);
         }
+        $this->initStat('player', 'turns_number', 0);
+        $this->initStat('table', 'turns_number', 0);
+        // Setup the initial game situation here
+        $this->initTables();
+        // activate
+        $this->activeNextPlayer();
+        $this->incStat(1, 'turns_number', $this->getActivePlayerId());
+        $this->incStat(1, 'turns_number');
         $this->gameinit = false;
     /**
      * ********** End of the game initialization ****
@@ -104,12 +100,12 @@ class BattleShip extends APP_Extended {
 
     function initTables() {
         // Create ships
-        $shipconfg = array(5=>1,4=>1,3=>1,2=>2,1=>2);
-     
-  
+        $shipconfg = array (5 => 1,4 => 1,3 => 1,2 => 2,1 => 2 );
+
         for ($p = 1; $p <= 2; $p ++) {
+
             foreach ( $shipconfg as $size => $num ) {
-                for ($x = 0; $x < $num; $x++) {
+                for ($x = 0; $x < $num; $x ++) {
                     $this->tokens->createTokensPack("fleet_${p}_fleetship_${size}_${x}_{INDEX}", "fleet", $size, 1);
                 }
             }
@@ -119,7 +115,7 @@ class BattleShip extends APP_Extended {
             }
         }
     }
-    
+
     /*
      * getAllDatas:
      *
@@ -176,7 +172,7 @@ class BattleShip extends APP_Extended {
     ////////////    
     function activeNextPlayerCustom() {
         $player_id = $this->getActivePlayerId();
-        if ($player_id==0) {
+        if ($player_id == 0) {
             $this->activeNextPlayer();
             return;
         }
@@ -184,7 +180,7 @@ class BattleShip extends APP_Extended {
         if ($this->isEndOfGame($next_player_id)) {
             return null; //XXX temp disable the end
         }
-        if ($next_player_id==0) {
+        if ($next_player_id == 0) {
             throw new BgaVisibleSystemException("Played id is 0");
         }
         $this->setNextActivePlayerCustom($next_player_id);
@@ -192,7 +188,8 @@ class BattleShip extends APP_Extended {
     }
 
     function isEndOfGame($next_player_id) {
-        if (!$next_player_id) return false;
+        if (! $next_player_id)
+            return false;
         $player_id = $this->getActivePlayerId();
         // check if all ships of this player is destroyed
         //$ship_num = self::getGameStateValue('ship_num');
@@ -233,16 +230,15 @@ class BattleShip extends APP_Extended {
             $ship = $parts [0];
             $dpos = "board_${pos}_${x}_${y}";
             $this->tokens->setTokenState($dpos, 1);
-            $this->tokens->setTokenState("fleet_${pos}_$ship",  10); // just in case we need it
+            $this->tokens->setTokenState("fleet_${pos}_$ship", 10); // just in case we need it
         }
-        
         $this->notifyWithName('playPlace', clienttranslate('${player_name} places ships'), array (), $player_id);
         $this->gamestate->setPlayerNonMultiactive($player_id, 'next');
     }
 
     public function action_playAttack($grid) {
         $this->checkAction('playAttack');
-        $this->systemAssertTrue("Invalid payload", $grid!=null);
+        $this->systemAssertTrue("Invalid payload", $grid != null);
         $player_id = $this->getActivePlayerId();
         $pos = $this->getPlayerPosition($player_id);
         $opos = 3 - $pos;
@@ -250,7 +246,7 @@ class BattleShip extends APP_Extended {
         $state = $this->tokens->getTokenState($location);
         if (! $state) {
             // missed
-            $this->tokens->setTokenState($location,  2); // 2 hit and miss
+            $this->tokens->setTokenState($location, 2); // 2 hit and miss
             $this->notifyWithName('playAttack', clienttranslate('${player_name} fired at ${pos} and missed'), array (
                     'pos' => $grid,'grid' => $grid,'state' => 2 ));
         } else if ($state == 1) {
@@ -313,8 +309,8 @@ class BattleShip extends APP_Extended {
         if ($next_player_id == null) {
             // end of game
             $this->notifyWithName('playLog', clienttranslate('${player_name} WINS!!!'));
-//             $this->gamestate->nextState('last'); // XXX fix
-//             return;
+            //             $this->gamestate->nextState('last'); // XXX fix
+            //             return;
         }
         $this->gamestate->nextState('next');
     }

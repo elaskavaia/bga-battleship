@@ -53,9 +53,9 @@ $stats_type = array (
         // Statistics existing for each player
         "player" => array (
                 "turns_number" => array ("id" => 10,"name" => totranslate("Number of turns"),"type" => "int" ),
-                "battle_player_score_total" => array ("id" => 10,"name" => totranslate("Number of hits"),
+                "battle_player_score_total" => array ("id" => 11,"name" => totranslate("Number of hits"),
                         "type" => "int" ),
-                "battle_player_miss" => array ("id" => 10,"name" => totranslate("Number of misses"),"type" => "int" )            /*
+                "battle_player_miss" => array ("id" => 12,"name" => totranslate("Number of misses"),"type" => "int" )            /*
          * Examples:
          *
          *
