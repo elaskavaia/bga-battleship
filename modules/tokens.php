@@ -119,6 +119,7 @@ class Tokens extends APP_GameClass {
             throw new feException("iterArr must be an array");
         if (count($iterArr) == 0)
             $iterArr = array ('' );
+        $this->warn("create tokens $key $location $nbr");
         $tokenSpec = array ('key' => $key,'location' => $location,'nbr' => $nbr,'nbr_start' => $nbr_start );
         $tokens = array ();
         foreach ( $iterArr as $iterKey ) {

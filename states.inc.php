@@ -79,7 +79,7 @@ $machinestates = array(
             "descriptionmyturn" => clienttranslate('${you} must select a grid to fire'),
             "type" => "activeplayer",
             'args' => 'arg_playerTurnAttack',
-            "possibleactions" => array( "playAttack" ),
+            "possibleactions" => array( "playAttack", "playBot" ),
             "transitions" => array( "next" => 4, "last" => 99 )
     ),
         

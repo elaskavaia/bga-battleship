@@ -21,32 +21,7 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
             // Here, you can init the global variables of your user interface
             // Example:
             // this.myGlobalValue = 0;
-            this.gridDiagOffsets = [ {
-                x : -1,
-                y : -1
-            }, {
-                x : -1,
-                y : 1
-            }, {
-                x : 1,
-                y : -1
-            }, {
-                x : 1,
-                y : 1
-            } ];
-            this.gridOffsets = [ {
-                x : 0,
-                y : -1
-            }, {
-                x : 0,
-                y : 1
-            }, {
-                x : -1,
-                y : 0
-            }, {
-                x : 1,
-                y : 0
-            } ];
+
             this.gridToFleet = [];
         },
 
@@ -110,7 +85,56 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
             // Setup game notifications to handle (see "setupNotifications" method below)
             this.setupNotifications();
 
+            this.hookBot();
+
             console.log("Ending game setup");
+        },
+
+        hookBot : function() {
+            // this.bot = this.player_id >= 2300663 && this.player_id < 2300662 + 9;
+            var dnode = $('debug_load3');
+            var self = this;
+            if (dnode != null) {
+                dnode = dojo.create("span", {
+                    innerHTML : " • "
+                }, dnode, 'after');
+                dnode = dojo.create("a", {
+                    href : "blank:",
+                    onclick : function(event) {
+                        dojo.stopEvent(event);
+                        self.bot = false;
+                        console.log("bot disable");
+                    },
+                    innerHTML : "Take Over Bot"
+                }, dnode, 'after');
+                dnode = dojo.create("span", {
+                    innerHTML : " • "
+                }, dnode, 'after');
+                dnode = dojo.create("a", {
+                    href : "blank:",
+                    onclick : function(event) {
+                        dojo.stopEvent(event);
+                        self.bot = true;
+                        console.log("bot enabled");
+                        self.autoBotAction();
+                    },
+                    innerHTML : "Run Bot"
+                }, dnode, 'after');
+            }
+        },
+
+        autoBotAction : function() {
+            if (!this.bot) return;
+            if (typeof g_replayFrom != "undefined") {
+                console.log("reply on");
+                return;
+            }
+
+            console.log("bot called " + (this.player_id - 2300662));
+
+            setTimeout(dojo.hitch(this, function() {
+                this.ajaxAction('playBot');
+            }), 100);
         },
 
         // /////////////////////////////////////////////////
@@ -122,18 +146,14 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
         onEnteringState : function(stateName, args) {
             console.log('Entering state: ' + stateName);
 
-            switch (stateName) {
-
-                /*
-                 * Example:
-                 * 
-                 * case 'myGameState': // Show some HTML block at this game state dojo.style( 'my_html_block_id', 'display', 'block' );
-                 * 
-                 * break;
-                 */
-
-                case 'dummmy':
-                    break;
+            if (this.isCurrentPlayerActive()) {
+                switch (stateName) {
+                    case 'playerTurnAttack':
+                        if (this.bot) {
+                            this.autoBotAction();
+                        }
+                        break;
+                }
             }
         },
 
@@ -143,20 +163,6 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
         onLeavingState : function(stateName) {
             console.log('Leaving state: ' + stateName);
 
-            switch (stateName) {
-
-                /*
-                 * Example:
-                 * 
-                 * case 'myGameState': // Hide the HTML block we are displaying only during this game state dojo.style( 'my_html_block_id',
-                 * 'display', 'none' );
-                 * 
-                 * break;
-                 */
-
-                case 'dummmy':
-                    break;
-            }
         },
 
         // onUpdateActionButtons: in this method you can manage "action buttons" that are displayed in the
@@ -184,11 +190,6 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
         // /////////////////////////////////////////////////
         // // Utility methods
 
-        /*
-         * 
-         * Here, you can defines some utility methods that you can use everywhere in your javascript script.
-         * 
-         */
         reconcileShips : function(id) {
             var node = $(id);
             var gpos = this.gridPosition(id);
@@ -197,193 +198,102 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
             if (ship) {
                 this.setShipOnGrid(gpos, null);
 
-                var nei = this.gridNei(gpos, this.gridDiagOffsets);
-                var neires = nei.res.concat(this.gridNei(gpos, this.gridOffsets).res);
-                for ( var i in neires) {
-                    var npos = neires[i];
-                    if (!npos) continue;
-                    this.placeShip(npos);
-                }
             } else {
-                this.placeShip(gpos);
+                this.setShipOnGrid(gpos, 's');
 
             }
+            this.reconcileBoard();
             this.markupBoard();
         },
-        placeShip : function(gpos) {
-            console.log("place on " + gpos.x + " " + gpos.y);
-            this.setShipOnGrid(gpos, 'x');
-            var nei = this.gridNei(gpos, this.gridDiagOffsets);
-            if (nei.count > 0) {
-                // error move
-            } else {
-                nei = this.gridNei(gpos, this.gridOffsets);
-                console.log(nei);
-
-                if (nei.vcount * nei.hcount > 0) {
-                    // non straight, error
-                } else {
-                    var l = 1;
-
-                    var toppos = {
-                        x : gpos.x,
-                        y : gpos.y
-                    };
-
-                    if (nei.vcount > 0) {
-                        var y = gpos.y - 1;
-                        for (var i = 0; i < 10; i++) {
-                            y = gpos.y - 1 - i;
-                            var ship = this.getShipOnGrid({
-                                x : gpos.x,
-                                y : y
-                            });
-                            if (ship == null) break;
-                        }
-                        y++;
-                        toppos.y = y;
-                        l = gpos.y - y + nei.vcount;
-                    } else if (nei.hcount > 0) {
-                        var x = gpos.x - 1;
-                        for (var i = 0; i < 10; i++) {
-                            x = gpos.x - 1 - i;
-                            var ship = this.getShipOnGrid({
-                                x : x,
-                                y : gpos.y
-                            });
-                            if (ship == null) break;
-                        }
-                        x++;
-                        toppos.x = x;
-                        l = gpos.x - x + nei.hcount;
-                    }
-
-                    var shipa = this.findFreeShip(l);
-                    console.log(shipa);
-                    if (shipa != null) {
-                        if (nei.count == 0) {
-                            this.setShipOnGrid(gpos, shipa[0]);
-                        }
-                        if (nei.vcount > 0) {
-                            var y = toppos.y;
-                            for ( var j in shipa) {
-                                var ngrid = {
-                                    x : gpos.x,
-                                    y : y
-                                };
-                                y++;
-                                this.setShipOnGrid(ngrid, shipa[j]);
-                            }
-                        }
-                        if (nei.hcount > 0) {
-                            var x = toppos.x;
-                            for ( var j in shipa) {
-                                var ngrid = {
-                                    x : x,
-                                    y : gpos.y
-                                };
-                                x++;
-                                this.setShipOnGrid(ngrid, shipa[j]);
-                            }
-                        }
-                    }
-                }
-
-            }
-        },
-        findFreeShip : function(num) {
-            var shipToGrid = {};
-            for (var x = 1; x <= 10; x++) {
-                for (var y = 1; y <= 10; y++) {
-                    var gpos = {
-                        x : x,
-                        y : y
-                    };
-                    var ship = this.getShipOnGrid(gpos);
-                    if (ship) {
-                        shipToGrid[ship] = gpos;
-                    }
-                }
-            }
+        
+        findFreeShip1 : function(num) {
             for (var y = 1; y <= 2; y++) {
-                var res = [];
                 for (var x = 1; x <= num; x++) {
                     var name = "fleetship_" + num + "_" + y + "_" + x;
                     if ($(name)) {
-                        if (!shipToGrid[name]) res.push(name);
+                        if (!this.shipToGrid[name]) return name;
                     }
                 }
-                if (res.length == num) return res;
             }
             return null;
+        },
+        reconcileBoard : function() {
+            this.shipToGrid = [];
+            var l = 0;
+            for (var i = 0; i < 100; i++) {
+                var gpos = i;
+                if (i % 10 == 0) l = 0;
+                var ship = this.getShipOnGrid(gpos);
+                if (ship) l++;
+                else
+                    l = 0;
+                for (var j = 0; j < l; j++) {
+                    this.setShipOnGrid(gpos - j, l);
+                }
+            }
+            for (var i = 0; i < 100; i++) {
+                var y = i % 10;
+                var x = Math.floor(i / 10);
+                var gpos = y * 10 + x;
+                if (i % 10 == 0) l = 0;
+                var ship = this.getShipOnGrid(gpos);
+                if (ship) l++;
+                else
+                    l = 0;
+                for (var j = 0; j < l; j++) {
+                    this.setShipOnGrid(gpos - j * 10, l * 10 + ship % 10);
+                }
+            }
+
+            for (var i = 0; i < 100; i++) {
+                var gpos = i;
+                var ship = this.getShipOnGrid(gpos);
+                if (ship) {
+                    this.setShipOnGrid(gpos, 'x');
+                    var l = ship % 10;
+                    var lh = Math.floor(ship / 10);
+                    if (l == 1) l = lh;
+                    else if (lh != 1) continue;
+
+                    var f = this.findFreeShip1(l);
+                    if (f != null) {
+                        this.shipToGrid[f] = gpos;
+                        var diag1 = this.addOffsets(gpos, 1, 1);
+                        var diag2 = this.addOffsets(gpos, -1, 1);
+                        // console.log("for "+gpos+" "+diag1+"=>"+this.getShipOnGrid(diag1)+" "+diag2+"=>"+this.getShipOnGrid(diag2));
+                        if (!this.getShipOnGrid(diag1) && !this.getShipOnGrid(diag2)) {
+                            this.setShipOnGrid(gpos, f);
+                        }
+                    }
+                }
+            }
         },
         markupBoard : function() {
             dojo.query(".ship").removeClass("ship");
             dojo.query(".error").removeClass("error");
             dojo.query(".used").removeClass("used");
-            for (var x = 1; x <= 10; x++) {
-                for (var y = 1; y <= 10; y++) {
-                    var gpos = {
-                        x : x,
-                        y : y
-                    };
-                    var ship = this.getShipOnGrid(gpos);
-                    if (ship) {
-                        var nid = this.gridId(0, gpos.x, gpos.y);
-                        dojo.addClass(nid, 'ship');
-                        if (ship == 'x') {
-                            dojo.addClass(nid, 'error');
-                        } else if (ship.startsWith('fleet')) {
-                            dojo.addClass(ship, 'used');
-                        }
+            for (var i = 0; i < 100; i++) {
+                var ship = this.getShipOnGrid(i);
+                var nid = this.gridId(0, i % 10 + 1, i / 10 + 1);
+                if (ship) {
+                    dojo.addClass(nid, 'ship');
+                    if (ship == 'x') {
+                        dojo.addClass(nid, 'error');
+                    } else if ($(ship)) {
+                        dojo.addClass(ship, 'used');
                     }
                 }
             }
         },
         getShipOnGrid : function(gpos) {
-            if (!this.gridToFleet[gpos.x]) {
-                this.gridToFleet[gpos.x] = [];
-            }
-            if (this.gridToFleet[gpos.x][gpos.y]) return this.gridToFleet[gpos.x][gpos.y];
-            this.gridToFleet[gpos.x][gpos.y] = null;
-            return null;
+            return this.gridToFleet[gpos];
         },
 
         setShipOnGrid : function(gpos, ship) {
-            if (!this.gridToFleet[gpos.x]) {
-                this.gridToFleet[gpos.x] = [];
-            }
-            this.gridToFleet[gpos.x][gpos.y] = ship;
+            this.gridToFleet[gpos] = ship;
 
         },
-        gridNei : function(gpos, offsets) {
-            var res = [];
-            var count = 0;
-            var vcount = 0;
-            for ( var i in offsets) {
-                var opos = offsets[i];
-                var npos = {
-                    x : gpos.x + opos.x,
-                    y : gpos.y + opos.y
-                }
-                var ship = this.getShipOnGrid(npos);
 
-                if (ship) {
-                    res[i] = npos;
-                    count++;
-                    if (i < 2) vcount++;
-
-                } else {
-                    res[i] = null;
-                }
-            }
-            return {
-                res : res,
-                count : count,
-                vcount : vcount,
-                hcount : count - vcount
-            };
-        },
         gridId : function(own, x, y) {
             var yL = String.fromCharCode(parseInt(y) + 64);
             return "grid_" + own + "_" + yL + "_" + x;
@@ -393,10 +303,26 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
             var letter = ss[2];
             var y = letter.charCodeAt(0) - 64;
             var x = parseInt(ss[3]);
-            return {
-                x : x,
-                y : y
-            };
+            return this.gridOffset(x, y);
+        },
+        gridOffset : function(x, y) {
+            return (y - 1) * 10 + (x - 1);
+        },
+
+        
+        getX_YfromOffset : function(grid) {
+            var x = grid % 10 + 1;
+            var y = Math.floor(grid / 10) + 1;
+            return x+"_"+y;
+        },
+
+        addOffsets : function(a, x2, y2) {
+            var x1 = a % 10;
+            var y1 = Math.floor(a / 10);
+
+            if (x1 + x2 < 0 || x1 + x2 > 9) return -1;
+            if (y1 + y2 < 0 || y1 + y2 > 9) return -1;
+            return a + y2 * 10 + x2;
         },
 
         /** More convenient version of ajaxcall, do not to specify game name, and any of the handlers */
@@ -489,7 +415,7 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
                     return;
                 }
                 var gpos = this.gridPosition(id);
-                var grid = gpos.x + "_" + gpos.y;
+                var grid = this.getX_YfromOffset(gpos);
                 this.ajaxAction('playAttack', {
                     grid : grid
                 });
@@ -502,17 +428,15 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
             console.log('onDone ' + id);
             dojo.stopEvent(event);
             var choices = "";
-            for (var x = 1; x <= 10; x++) {
-                for (var y = 1; y <= 10; y++) {
-                    var gpos = {
-                        x : x,
-                        y : y
-                    };
-                    var ship = this.getShipOnGrid(gpos);
-                    if (ship) {
-                        choices += " " + ship + "_at_" + gpos.x + "_" + gpos.y;
-                    }
+            for (var i = 0; i < 100; i++) {
+                var gpos = i;
+                var ship = this.getShipOnGrid(gpos);
+                if (ship) {
+       
+                    var grid = this.getX_YfromOffset(gpos);
+                    choices += " " + ship + "_at_" + grid;
                 }
+
             }
             console.log("sending " + choices);
             this.ajaxAction('playPlace', {
@@ -569,7 +493,7 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
 
             // arguments specified during you "notifyAllPlayers" / "notifyPlayer" PHP call // TODO: play the card in the user interface.
         },
-        
+
         notif_score : function(notif) {
             this.scoreCtrl[notif.args.player_id].setValue(notif.args.player_score);
         },

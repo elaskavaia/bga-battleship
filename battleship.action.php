@@ -54,7 +54,11 @@
   	    $this->game->action_playAttack( $card );
   	    self::ajaxResponse( );
   	}
-
+  	public function playBot() {
+  	    self::setAjaxMode();
+  	    $this->game->action_playBot( );
+  	    self::ajaxResponse( );
+  	}
   	
   	// --- generated actions end ---
 
