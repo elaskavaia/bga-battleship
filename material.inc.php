@@ -20,18 +20,11 @@
  */
 
 
-/*
 
-Example:
 
-$this->card_types = array(
-    1 => array( "card_name" => ...,
-                ...
-              )
+$this->fleetconfig = array (
+        1 => array (5 => 1,4 => 1,3 => 1,2 => 2,1 => 2 ),
+        2 => array (5 => 1,4 => 1,3 => 3,2 => 1,1 => 0 ),
 );
-
-*/
-
-
 
 
