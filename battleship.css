@@ -175,7 +175,10 @@ html, .mode_3d #game_play_area_background {
 }
 
 .state_3 {
-	background-color: red;
+	background-color: white;
+    color: red;
+    font-weight: bolder;
+    box-shadow: inset 0px 0px 0px 2px black;
 }
 
 .state_3::after {
