@@ -152,6 +152,7 @@ class BattleShip extends APP_Extended {
         
         $result ['fleetconfig'] = $this->fleetconfig;
         $result ['fleetoption'] = $option;
+        $result ['width'] = 10;
         return $result;
     }
 
@@ -300,7 +301,7 @@ class BattleShip extends APP_Extended {
             $this->tokens->setTokenState($location, $state);
             $sunk = $this->isShipSunk($location);
             if ($sunk)
-                $message = clienttranslate('${player_name} fired at ${pos} and sunk the ship!');
+                $message = clienttranslate('${player_name} fired at ${pos} and hit! ship is sunk!');
             else
                 $message = clienttranslate('${player_name} fired at ${pos} and hit!');
             $this->notifyWithName('playAttack', $message, array ('pos' => $hgrid,'grid' => $grid,'state' => $state,

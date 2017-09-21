@@ -41,6 +41,7 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
             console.log(gamedatas);
 
             this.gamedatas = gamedatas;
+            this.WIDTH = gamedatas['width'];
 
             if (this.isSpectator) {
                 this.player_color = 'ffffff';
@@ -74,7 +75,7 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
 
                 if (state == 1) {
                     var gpos = this.gridPosition(grid);
-                    this.setShipOnGrid(gpos, 's');
+                    this.setShipOnGrid(gpos, 'p');
                 }
             }
 
@@ -174,6 +175,7 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
             if (this.isCurrentPlayerActive()) {
                 switch (stateName) {
                     case 'playerTurnPlace':
+                        this.shipToGrid = [];
                         this.addActionButton('button_done', _('Done'), 'onDone');
                         break;
 
@@ -190,20 +192,110 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
         // /////////////////////////////////////////////////
         // // Utility methods
 
-        reconcileShips : function(id) {
+        placeOrRemoveShip : function(id) {
             var node = $(id);
             var gpos = this.gridPosition(id);
             var ship = this.getShipOnGrid(gpos);
             // console.log(gpos);
             if (ship) {
-                this.setShipOnGrid(gpos, null);
+                if (ship.startsWith('fleetship')) {
+                    // whole ship remove
+                    var size = getIntPart(ship,1);
+                    var y = getPart(ship,2);
+                    this.setShipOnGrid(gpos, null);     
+                    for (var x = 1; x <= size; x++) {
+                        var name = "fleetship_" + size + "_" + y + "_" + x;
+                        var xgrid = this.shipToGrid[name];
+                        if (xgrid)  {
+                            this.setShipOnGrid(xgrid, null);
+                            this.shipToGrid[name]=null;
+                        }
+                    }
+                } else if (ship.startsWith('x')) {
+                    this.setShipOnGrid(gpos, null);
+                } else {
+                    this.completeShip(gpos);
+                    ship = this.getShipOnGrid(gpos);
+                    if (ship == 's') {
+                        this.setShipOnGrid(gpos, 'x');
+                    }
+                }
+               
 
             } else {
                 this.setShipOnGrid(gpos, 's');
 
             }
-            this.reconcileBoard();
+            //this.reconcileBoard();
             this.markupBoard();
+        },
+        
+        completeShip : function(gpos) {
+            var vector = this.getShipPosDir(gpos);
+            var size = vector.len;
+            var f = this.findFreeShip1(size);
+            if (f == null) {
+                for (var i = 0; i < vector.len; i++) {
+                    var spos = vector.gpos + i * vector.dir;
+                    this.setShipOnGrid(spos, 'x');
+                }
+                return;
+            }
+            var y = getPart(f,2);
+           
+
+            for (var i = 0; i < vector.len; i++) {
+                var spos = vector.gpos + i * vector.dir;
+                var f = "fleetship_" + size + "_" + y + "_" + (i+1);
+
+                var opos = this.shipToGrid[f];
+                if (opos !== null && typeof opos != 'undefined') {
+                    this.setShipOnGrid(opos, null);
+                }
+                this.shipToGrid[f] = spos;
+                this.setShipOnGrid(spos, f);
+            }
+        }, 
+        
+
+
+        getShipPosDir : function(gpos) {
+            var xpos = this.getStart(gpos, -1);
+            var ypos = this.getStart(gpos, -1 * this.WIDTH);
+            var xpos2 = this.getStart(xpos, 1);
+            var ypos2 = this.getStart(ypos, this.WIDTH);
+            var xlen = xpos2 - xpos + 1;
+            var ylen = (ypos2 - ypos) / this.WIDTH + 1;
+            if (xpos < ypos || xlen >= ylen) {
+                return {
+                    gpos : xpos,
+                    dir : 1,
+                    len : xlen,
+                }
+            } else {
+                return {
+                    gpos : ypos,
+                    dir : this.WIDTH,
+                    len : ylen,
+                }
+            }
+        }, 
+        
+        getStart : function(gpos, offset) {
+            var last = gpos;
+            var spos;
+            for (var i = 0; i < 5; i++) {
+                spos = gpos + offset * i;
+                if (spos<0) break;
+                if (spos>=this.WIDTH*this.WIDTH) break;
+                var ship = this.getShipOnGrid(spos);
+                if (ship == 's' || ship == 'x') last = spos;
+                else break;
+                var x = spos % this.WIDTH;
+                if (offset == -1 && x == 0) break;
+                if (offset == 1 && x == this.WIDTH - 1) break;
+            }
+            return last;
         },
         
         findFreeShip1 : function(num) {
@@ -280,18 +372,18 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
             for (var i = 0; i < 100; i++) {
                 var ship = this.getShipOnGrid(i);
                 var nid = this.gridId(0, i % 10 + 1, i / 10 + 1);
+                $(nid).innerHTML = "";
                 if (ship) {
                     dojo.addClass(nid, 'ship');
                     if (ship.startsWith('x')) {
                         dojo.addClass(nid, 'error');
-                        $(nid).innerHTML=ship;
+                        $(nid).innerHTML = "";
                     } else if ($(ship)) {
                         dojo.addClass(ship, 'used');
-                        $(nid).innerHTML=ship.split('_')[1];
+                        $(nid).innerHTML = "";// ship.split('_')[1];
+                    } else if (ship == 's') {
+                        $(nid).innerHTML = ship;
                     }
-             
-                } else {
-                    $(nid).innerHTML=""; 
                 }
             }
         },
@@ -415,13 +507,13 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
             var ss = id.split('_');
             if (this.getStateName() == 'playerTurnPlace') {
                 if (ss[1] != '0') {
-                    this.showMoveUnauthorized();
+                    this.showMessage(_('This is not your board!'), 'error');
                     return;
                 }
-                this.reconcileShips(id)
+                this.placeOrRemoveShip(id)
             } else {
                 if (ss[1] != '1') {
-                    this.showMoveUnauthorized();
+                    this.showMessage(_('This is your own board silly!'), 'error');
                     return;
                 }
                 var gpos = this.gridPosition(id);
@@ -485,7 +577,6 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
             // 
         },
 
-        // TODO: from this point and below, you can write your game notifications handling methods
 
         notif_playAttack : function(notif) {
             console.log('notif_playAttack');
@@ -533,3 +624,13 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
 
     });
 });
+
+function getPart(word, i) {
+    var arr = word.split('_');
+    return arr[i];
+};
+
+function getIntPart(word, i) {
+    var arr = word.split('_');
+    return parseInt(arr[i]);
+};
