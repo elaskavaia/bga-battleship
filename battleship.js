@@ -220,6 +220,7 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
         reconcileBoard : function() {
             this.shipToGrid = [];
             var l = 0;
+            // horizontal scan
             for (var i = 0; i < 100; i++) {
                 var gpos = i;
                 if (i % 10 == 0) l = 0;
@@ -231,6 +232,8 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
                     this.setShipOnGrid(gpos - j, l);
                 }
             }
+            l = 0;
+            // vertical scan
             for (var i = 0; i < 100; i++) {
                 var y = i % 10;
                 var x = Math.floor(i / 10);
@@ -241,29 +244,31 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
                 else
                     l = 0;
                 for (var j = 0; j < l; j++) {
+                    ship = this.getShipOnGrid(gpos - j * 10);
                     this.setShipOnGrid(gpos - j * 10, l * 10 + ship % 10);
                 }
             }
-
+            // composition
             for (var i = 0; i < 100; i++) {
                 var gpos = i;
                 var ship = this.getShipOnGrid(gpos);
                 if (ship) {
-                    this.setShipOnGrid(gpos, 'x');
+                    this.setShipOnGrid(gpos, 'x'+ship);
                     var l = ship % 10;
                     var lh = Math.floor(ship / 10);
                     if (l == 1) l = lh;
-                    else if (lh != 1) continue;
+                    //else if (lh != 1) continue;
 
                     var f = this.findFreeShip1(l);
                     if (f != null) {
                         this.shipToGrid[f] = gpos;
-                        var diag1 = this.addOffsets(gpos, 1, 1);
-                        var diag2 = this.addOffsets(gpos, -1, 1);
+                        //var diag1 = this.addOffsets(gpos, 1, 1);
+                        //var diag2 = this.addOffsets(gpos, -1, 1);
                         // console.log("for "+gpos+" "+diag1+"=>"+this.getShipOnGrid(diag1)+" "+diag2+"=>"+this.getShipOnGrid(diag2));
-                        if (!this.getShipOnGrid(diag1) && !this.getShipOnGrid(diag2)) {
-                            this.setShipOnGrid(gpos, f);
-                        }
+                        //if (!this.getShipOnGrid(diag1) && !this.getShipOnGrid(diag2)) {
+                        // no touching check 
+                        //}
+                        this.setShipOnGrid(gpos, f);
                     }
                 }
             }
@@ -277,11 +282,16 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
                 var nid = this.gridId(0, i % 10 + 1, i / 10 + 1);
                 if (ship) {
                     dojo.addClass(nid, 'ship');
-                    if (ship == 'x') {
+                    if (ship.startsWith('x')) {
                         dojo.addClass(nid, 'error');
+                        $(nid).innerHTML=ship;
                     } else if ($(ship)) {
                         dojo.addClass(ship, 'used');
+                        $(nid).innerHTML=ship.split('_')[1];
                     }
+             
+                } else {
+                    $(nid).innerHTML=""; 
                 }
             }
         },
