@@ -31,21 +31,19 @@
 
 
 		<!-- BEGIN grid -->
-		<table class="{GRID_CLASS} grid">
-			<caption id="{GRID_CLASS}_ships_title"
-				class="board_title {GRID_CLASS}_ships_title">{GRID_CAPTION}</caption>
-			<tbody>
+		<div class="{GRID_CLASS} grid">
+			<div id="{GRID_CLASS}_ships_title"
+				class="board_title {GRID_CLASS}_ships_title caption">{GRID_CAPTION}</div>
+			<div class="grid-body">
 				<!-- BEGIN gridRow -->
-				<tr>
+				
 					<!-- BEGIN gridCell -->
-					<td class="{CELL_CLASS}">{CELL_CONTENT}
-						<div id='{GRID}_{LETTER}_{NUMBER}' class="gridPlacement"></div>
-					</td>
+					<div  id='{GRID}_{LETTER}_{NUMBER}' class="{CELL_CLASS} table-cell gridPlacement" style="top: {TOP}px; left: {LEFT}px;">{CELL_CONTENT}</div>
 					<!-- END gridCell -->
-				</tr>
+				
 				<!-- END gridRow -->
-			</tbody>
-		</table>
+			</div>
+		</div>
 		<!-- END grid -->
 
 

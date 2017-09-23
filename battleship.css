@@ -45,9 +45,8 @@
 /* Note: you must not use any @import directive other than this one */
 
 /********* You can start writing your CSS below this line: **********/
-
 html, .mode_3d #game_play_area_background {
-	/* background-image: url(img/bg.jpg); */ 
+	/* background-image: url(img/bg.jpg); */
 	background-color: #f8f8f8;
 }
 
@@ -56,11 +55,11 @@ html, .mode_3d #game_play_area_background {
 	height: 800px;
 	width: 700px;
 	margin: auto;
-	background-image: url(img/tiny_grid.png); 
-	padding:  26px;
+	background-image: url(img/tiny_grid.png);
+	padding: 26px;
 }
 
-.board caption {
+.board .caption {
 	text-align: right;
 	height: 26px;
 }
@@ -76,16 +75,26 @@ html, .mode_3d #game_play_area_background {
 }
 
 .grid_0 {
-	width: 296px;
-	height: 322px;
+	z-index: 20;
 }
 
 .grid_1 {
-    left: 254px;
-    top: 257px;
-    width: 454px;
-    height: 480px;
+    left: 246px;
+    top: 246px;
 	pointer-events: none;
+	z-index: 10;
+}
+
+.grid-body {
+	position: relative;
+	background-color: #c8e5ed;
+	width: 286px;
+	height: 286px;
+}
+
+.grid_1 .grid-body {
+	width: 440px;
+	height: 440px;
 }
 
 .fleet {
@@ -93,39 +102,43 @@ html, .mode_3d #game_play_area_background {
 	top: 52px;
 }
 
-.background-grids td {
-	border: 1px solid black;
-	vertical-align: middle;
+.table-cell {
+	display: inline-block;
+    border-width: 0.5px;
+    border-style: solid;
+    border-color: black;
+	width: 26px;
+	height: 26px;
+	margin: 0px;
+	position: absolute;
+	line-height: 26px;
+	vertical-align: top;
 	text-align: center;
+	background-color: transparent;
+	pointer-events: bounding-box;
 }
 
-.gridPlacement {
-	height: 100%;
-	width: 100%;
-	background-color: #c8e5ed;
-	/* opacity: 0.3; */
-	pointer-events: bounding-box;
-	line-height: 26px;
-}
-.grid_1 .gridPlacement {
+.grid_1 .table-cell {
+	width: 40px;
+	height: 40px;
 	line-height: 40px;
 }
 
-.grid td.cell-number .gridPlacement, .grid td.cell-letter .gridPlacement,
-	.grid td.first-cell .gridPlacement {
-	display: none;
-}
-
-.grid td.first-cell {
-	border-left: none;
-	border-top: none;
+.grid .first-cell {
 	pointer-events: none;
 }
 
-.grid_0 td {
-	height: 26px;
-	width: 26px;
+
+
+.grid .cell-letter {
+	border-right: 1px solid black;
 }
+
+.grid .cell-number{
+	border-bottom: 1px solid black;
+}
+
+
 
 .fleet td {
 	height: 26px;
@@ -143,23 +156,21 @@ html, .mode_3d #game_play_area_background {
 }
 
 .fleet tr {
-
+	
 }
 
-.fleetship,.ship {	
+.fleetship {
 	background: white;
-	/*
-    outline-color: black;
-    outline-width: 2px;
-    outline-style: solid;
-    */
-    
-    box-shadow:inset 0px 0px 0px 2px black;
-     
-    height: 26px;
-    vertical-align: middle;
-    text-align: center;
-    
+	box-shadow: inset 0px 0px 0px 2px black;
+	height: 26px;
+	vertical-align: middle;
+	text-align: center;
+}
+
+.ship {
+	height: 26px;
+	vertical-align: middle;
+	text-align: center;
 }
 
 .fleetship.used {
@@ -176,33 +187,81 @@ html, .mode_3d #game_play_area_background {
 
 .state_3 {
 	background-color: white;
-    color: red;
-    font-weight: bolder;
-    box-shadow: inset 0px 0px 0px 2px black;
+	color: red;
+	font-weight: bolder;
+	box-shadow: inset 0px 0px 0px 2px black;
 }
 
 .state_3::after {
-		content: "X";
+	content: "X";
 }
 
-.grid_1 td {
-	height: 40px;
-	width: 40px;
+.fleetship_2_1_1 {
+	background-image: url(img/fleet.png);
 }
 
-.grid td.cell-first-inside-row {
-	border-top: 2px solid black;
+.grid_0 .ship {
+	background-image: url(img/fleet.png);
+	background-size: 156px;
 }
 
-.grid td.cell-first-inside-col {
-	border-left: 2px solid black;
+.fleetship_5_1_1 {
+	background-position: 0% 0%;
 }
 
-.grid td.cell-last-inside-row {
-	border-bottom: 2px solid black;
+.fleetship_5_1_2 {
+	background-position: 20% 0%;
 }
 
-.grid td.cell-last-inside-col {
-	border-right: 2px solid black;
+.fleetship_5_1_3 {
+	background-position: 40% 0%;
+}
+
+.fleetship_5_1_4 {
+	background-position: 60% 0%;
+}
+
+.fleetship_5_1_5 {
+	background-position: 80% 0%;
+}
+
+.fleetship_4_1_1 {
+	background-position: 0% 11%;
+}
+
+.fleetship_4_1_2 {
+	background-position: 20% 11%;
+}
+
+.fleetship_4_1_3 {
+	background-position: 40% 11%;
+}
+
+.fleetship_4_1_4 {
+	background-position: 60% 11%;
+}
+
+.fleetship_3_1_1 {
+	background-position: 0% 22%;
+}
+
+.fleetship_3_1_2 {
+	background-position: 20% 22%;
+}
+
+.fleetship_3_1_3 {
+	background-position: 40% 22%;
+}
+
+.fleetship_2_1_1 {
+	background-position: 0% 33%;
+}
+
+.fleetship_2_1_2 {
+	background-position: 20% 33%;
+}
+
+.fleetship_1_1_1 {
+	background-position: 0% 44%;
 }
 

@@ -380,6 +380,7 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
                         $(nid).innerHTML = "";
                     } else if ($(ship)) {
                         dojo.addClass(ship, 'used');
+                        dojo.addClass(nid, ship);
                         $(nid).innerHTML = "";// ship.split('_')[1];
                     } else if (ship == 's') {
                         $(nid).innerHTML = ship;

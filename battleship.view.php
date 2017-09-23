@@ -83,13 +83,21 @@ class view_battleship_battleship extends game_view {
         $this->page->begin_block("battleship_battleship", "grid");
         for ($a = 0; $a < 2; $a ++) {
             $this->page->reset_subblocks('gridRow');
+            // cell width
+            if ($a==1) $w=40;
+            else $w=26;
+            
             for ($b = 0; $b < 11; $b ++) {
                 $this->page->reset_subblocks('gridCell');
                 for ($c = 0; $c < 11; $c ++) {
                     $class = $this->getClass($b, $c);
                     $content = $this->cellContent($b, $c);
+                    $top = $b * $w;
+                    $left= $c * $w;
                     $this->page->insert_block('gridCell', array ('CELL_CLASS' => $class,'CELL_CONTENT' => $content,
-                            'GRID' => 'grid_' . $a,'LETTER' => $letter [$b],'NUMBER' => $c ));
+                            'GRID' => 'grid_' . $a,'LETTER' => $letter [$b],'NUMBER' => $c,
+                            'TOP' => $top, 'LEFT' => $left,
+                    ));
                 }
                 $this->page->insert_block('gridRow');
             }
