@@ -42,6 +42,7 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
 
             this.gamedatas = gamedatas;
             this.WIDTH = gamedatas['width'];
+            this.shipToGrid = {};
 
             if (this.isSpectator) {
                 this.player_color = 'ffffff';
@@ -60,22 +61,43 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
             // TODO: Set up your game interface here, according to "gamedatas"
             for ( var loc in gamedatas.board_state) {
                 var state = gamedatas.board_state[loc];
-
+                
                 var sloc = loc.split('_');
-                var grid = "";
-                if (sloc[1] == this.player_no) {
-                    // my board
-                    grid = this.gridId(0, sloc[2], sloc[3]);
-                } else {
-                    grid = this.gridId(1, sloc[2], sloc[3]);
-                }
+                if (sloc[0] == 'board') {
+                    var grid = "";
+                    if (sloc[1] == this.player_no) {
+                        // my board
+                        grid = this.gridId(0, sloc[2], sloc[3]);
+                    } else {
+                        grid = this.gridId(1, sloc[2], sloc[3]);
+                    }
 
-                console.log(loc + " " + grid + "->" + state);
-                this.changeTokenStateTo(grid, state);
+                    console.log(loc + " " + grid + "->" + state);
+                    this.changeTokenStateTo(grid, state);
 
-                if (state == 1) {
-                    var gpos = this.gridPosition(grid);
-                    this.setShipOnGrid(gpos, 'p');
+                    if (state == 1) {
+                        var gpos = this.gridPosition(grid);
+                        this.setShipOnGrid(gpos, 'p');
+                    }
+                } 
+            }
+            
+            for ( var key in gamedatas.fleet) {
+                var ship_info = gamedatas.fleet[key];
+                // key: "fleet_${pnum}_fleetship_${size}_{numindex}"
+                // loc: grid_${pnum}_${x}_{y}_${vert}
+           
+                var loc = ship_info.location;
+                console.log(key + "->" + loc + " for "+this.player_no);
+                var sloc = loc.split('_');
+                var num = parseInt(sloc[1]); 
+                if (num == this.player_no) {
+                    // my  fleet
+                    var gpos = this.gridPosition(loc);
+                    var dirid =  sloc[4];
+                    var skey = key.split('_');
+                    var ship = skey[2]+"_"+skey[3]+"_"+skey[4];
+                    this.moveShipOnGrid(ship,gpos,dirid);
                 }
             }
 
@@ -175,7 +197,7 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
             if (this.isCurrentPlayerActive()) {
                 switch (stateName) {
                     case 'playerTurnPlace':
-                        this.shipToGrid = [];
+                 
                         this.addActionButton('button_done', _('Done'), 'onDone');
                         break;
 
@@ -200,17 +222,7 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
             if (ship) {
                 if (ship.startsWith('fleetship')) {
                     // whole ship remove
-                    var size = getIntPart(ship,1);
-                    var y = getPart(ship,2);
-                    this.setShipOnGrid(gpos, null);     
-                    for (var x = 1; x <= size; x++) {
-                        var name = "fleetship_" + size + "_" + y + "_" + x;
-                        var xgrid = this.shipToGrid[name];
-                        if (xgrid)  {
-                            this.setShipOnGrid(xgrid, null);
-                            this.shipToGrid[name]=null;
-                        }
-                    }
+                    this.moveShipOnGrid(ship,null);
                 } else if (ship.startsWith('x')) {
                     this.setShipOnGrid(gpos, null);
                 } else {
@@ -241,20 +253,8 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
                 }
                 return;
             }
-            var y = getPart(f,2);
            
-
-            for (var i = 0; i < vector.len; i++) {
-                var spos = vector.gpos + i * vector.dir;
-                var f = "fleetship_" + size + "_" + y + "_" + (i+1);
-
-                var opos = this.shipToGrid[f];
-                if (opos !== null && typeof opos != 'undefined') {
-                    this.setShipOnGrid(opos, null);
-                }
-                this.shipToGrid[f] = spos;
-                this.setShipOnGrid(spos, f);
-            }
+            this.moveShipOnGrid(f,vector.gpos, vector.dirid);
         }, 
         
 
@@ -271,12 +271,14 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
                     gpos : xpos,
                     dir : 1,
                     len : xlen,
+                    dirid: "h",
                 }
             } else {
                 return {
                     gpos : ypos,
                     dir : this.WIDTH,
                     len : ylen,
+                    dirid: "v",
                 }
             }
         }, 
@@ -299,123 +301,101 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
         },
         
         findFreeShip1 : function(num) {
-            for (var y = 1; y <= 2; y++) {
-                for (var x = 1; x <= num; x++) {
-                    var name = "fleetship_" + num + "_" + y + "_" + x;
-                    if ($(name)) {
-                        if (!this.shipToGrid[name]) return name;
-                    }
-                }
-            }
+            var res = dojo.query(".fleet .fleetship_"+num);
+            if (res.length>0) return res[0].id;
             return null;
         },
-        reconcileBoard : function() {
-            this.shipToGrid = [];
-            var l = 0;
-            // horizontal scan
-            for (var i = 0; i < 100; i++) {
-                var gpos = i;
-                if (i % 10 == 0) l = 0;
-                var ship = this.getShipOnGrid(gpos);
-                if (ship) l++;
-                else
-                    l = 0;
-                for (var j = 0; j < l; j++) {
-                    this.setShipOnGrid(gpos - j, l);
-                }
-            }
-            l = 0;
-            // vertical scan
-            for (var i = 0; i < 100; i++) {
-                var y = i % 10;
-                var x = Math.floor(i / 10);
-                var gpos = y * 10 + x;
-                if (i % 10 == 0) l = 0;
-                var ship = this.getShipOnGrid(gpos);
-                if (ship) l++;
-                else
-                    l = 0;
-                for (var j = 0; j < l; j++) {
-                    ship = this.getShipOnGrid(gpos - j * 10);
-                    this.setShipOnGrid(gpos - j * 10, l * 10 + ship % 10);
-                }
-            }
-            // composition
-            for (var i = 0; i < 100; i++) {
-                var gpos = i;
-                var ship = this.getShipOnGrid(gpos);
-                if (ship) {
-                    this.setShipOnGrid(gpos, 'x'+ship);
-                    var l = ship % 10;
-                    var lh = Math.floor(ship / 10);
-                    if (l == 1) l = lh;
-                    //else if (lh != 1) continue;
-
-                    var f = this.findFreeShip1(l);
-                    if (f != null) {
-                        this.shipToGrid[f] = gpos;
-                        //var diag1 = this.addOffsets(gpos, 1, 1);
-                        //var diag2 = this.addOffsets(gpos, -1, 1);
-                        // console.log("for "+gpos+" "+diag1+"=>"+this.getShipOnGrid(diag1)+" "+diag2+"=>"+this.getShipOnGrid(diag2));
-                        //if (!this.getShipOnGrid(diag1) && !this.getShipOnGrid(diag2)) {
-                        // no touching check 
-                        //}
-                        this.setShipOnGrid(gpos, f);
-                    }
-                }
-            }
-        },
+      
         markupBoard : function() {
             dojo.query(".ship").removeClass("ship");
             dojo.query(".error").removeClass("error");
             dojo.query(".used").removeClass("used");
-            for (var i = 0; i < 100; i++) {
+            for (var i = 0; i < this.WIDTH * this.WIDTH; i++) {
                 var ship = this.getShipOnGrid(i);
-                var nid = this.gridId(0, i % 10 + 1, i / 10 + 1);
-                $(nid).innerHTML = "";
+                var nid = this.gridId(0, i % this.WIDTH + 1, i / this.WIDTH + 1);
+                if ($(nid))
+                    ;//
+                else
+                    console.error("Unknown grid "+nid);
                 if (ship) {
                     dojo.addClass(nid, 'ship');
+                    dojo.removeClass(nid, 'preship');
                     if (ship.startsWith('x')) {
                         dojo.addClass(nid, 'error');
-                        $(nid).innerHTML = "";
+                       
                     } else if ($(ship)) {
-                        dojo.addClass(ship, 'used');
-                        dojo.addClass(nid, ship);
-                        $(nid).innerHTML = "";// ship.split('_')[1];
+                        dojo.addClass('slot_'+ship, 'used');
+                       
+                        
                     } else if (ship == 's') {
-                        $(nid).innerHTML = ship;
+                        dojo.addClass(nid, 'preship');
                     }
                 }
             }
         },
         getShipOnGrid : function(gpos) {
-            return this.gridToFleet[gpos];
+            var mark = this.gridToFleet[gpos];
+            var gpos = this.shipToGrid[mark];
+            if ($(mark) && gpos) return this.gridToFleet[gpos];
+            return mark;
         },
 
+        moveShipOnGrid : function(ship, gpos, dirid) {
+            if (!dirid) dirid='h';
+            
+            var inc = 1;
+            if (dirid == 'v') inc = this.WIDTH;
+            var size = getIntPart(ship, 1);
+            dojo.removeClass(ship, 'ship_h');
+            dojo.removeClass(ship, 'ship_v');
+            console.log(ship + "-move->" + gpos +" "+dirid);
+            if (gpos == null) { // remove
+                gpos = this.shipToGrid[ship];
+                if (gpos != null) {
+                    this.slideToObjectRelative(ship, 'slot_'+ship, 500); // fleet
+                }
+
+                this.shipToGrid[ship] = null;
+                for (var x = 0; x < size; x++) {
+                    var spos = gpos + x * inc;
+                    this.gridToFleet[spos] = null;
+                }
+            } else { // add
+                dojo.addClass(ship, 'ship_' + dirid);
+
+                this.shipToGrid[ship] = gpos;
+                this.slideToObjectRelative(ship, 'grid_0_' + this.getX_YfromOffset(gpos), 500);
+
+                for (var x = 0; x < size; x++) {
+                    var spos = gpos + x * inc;
+                    this.gridToFleet[spos] = ship;
+                }
+            }
+        },
+        
         setShipOnGrid : function(gpos, ship) {
             this.gridToFleet[gpos] = ship;
-
+       
         },
 
         gridId : function(own, x, y) {
-            var yL = String.fromCharCode(parseInt(y) + 64);
-            return "grid_" + own + "_" + yL + "_" + x;
+            y = parseInt(y);
+            return "grid_" + own + "_" + x + "_" + y;
         },
         gridPosition : function(id) {
             var ss = id.split('_');
-            var letter = ss[2];
-            var y = letter.charCodeAt(0) - 64;
-            var x = parseInt(ss[3]);
+            var x = parseInt(ss[2]);
+            var y = parseInt(ss[3]);
             return this.gridOffset(x, y);
         },
         gridOffset : function(x, y) {
-            return (y - 1) * 10 + (x - 1);
+            return ( parseInt(y) - 1) * this.WIDTH + ( parseInt(x) - 1);
         },
 
         
         getX_YfromOffset : function(grid) {
-            var x = grid % 10 + 1;
-            var y = Math.floor(grid / 10) + 1;
+            var x = grid % this.WIDTH + 1;
+            var y = Math.floor(grid / this.WIDTH) + 1;
             return x+"_"+y;
         },
 
@@ -490,6 +470,140 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
         getStateName : function() {
             return this.gamedatas.gamestate.name;
         },
+        
+        /**
+         * This method will remove all inline style added to element that affect positioning
+         */
+        stripPosition : function(token) {
+            // console.log(token + " STRIPPING");
+            // remove any added positioning style
+            dojo.style(token, "display", "");
+            dojo.style(token, "top", "");
+            dojo.style(token, "left", "");
+            dojo.style(token, "position", "");
+            // dojo.style(token, "transform", null);
+        },
+        stripTransition : function(token) {
+            this.setTransition(token, "");
+
+        },
+        setTransition : function(token, value) {
+            dojo.style(token, "transition", value);
+            dojo.style(token, "-webkit-transition", value);
+            dojo.style(token, "-moz-transition", value);
+            dojo.style(token, "-o-transition", value);
+
+        },
+        /**
+         * This method will attach mobile to a new_parent without destroying, unlike original attachToNewParent which destroys mobile and
+         * all its connectors (onClick, etc)
+         */
+
+        attachToNewParentNoDestroy : function(mobile, new_parent) {
+            if (mobile === null) {
+                console.error("attachToNewParent: mobile obj is null");
+                return;
+            }
+            if (new_parent === null) {
+                console.error("attachToNewParent: new_parent is null");
+                return;
+            }
+            if (typeof mobile == "string") {
+                mobile = $(mobile);
+            }
+            if (typeof new_parent == "string") {
+                new_parent = $(new_parent);
+            }
+
+            var src = dojo.position(mobile);
+            dojo.style(mobile, "position", "absolute");
+            dojo.place(mobile, new_parent, "last");
+            var tgt = dojo.position(mobile);
+            var box = dojo.marginBox(mobile);
+            var cbox = dojo.contentBox(mobile);
+
+            var left = box.l + src.x - tgt.x;
+            var top = box.t + src.y - tgt.y;
+            dojo.style(mobile, "top", top + "px");
+            dojo.style(mobile, "left", left + "px");
+            box.l += box.w - cbox.w;
+            box.t += box.h - cbox.h;
+            return box;
+        },
+
+        /**
+         * This method is similar to slideToObject but works on object which do not use inline style positioning. It also attaches object to
+         * new parent immediately, so parent is correct during animation
+         */
+        slideToObjectRelative : function(token, finalPlace, duration, delay, onEnd) {
+            if (typeof token == 'string') {
+                token = $(token);
+            }
+
+            var self = this;
+            this.delayedExec(function() {
+                self.stripTransition(token);
+                self.stripPosition(token);
+                var box = self.attachToNewParentNoDestroy(token, finalPlace);
+                self.setTransition(token, "all " + duration + "ms ease-in-out");
+                self.placeOnObjectDirect(token, finalPlace, box.l, box.t);
+
+            }, function() {
+                self.stripTransition(token);
+                self.stripPosition(token);
+                if (onEnd) onEnd(token);
+            }, duration, delay);
+        },
+
+        slideToObjectAbsolute : function(token, finalPlace, x, y, duration, delay, onEnd) {
+            if (typeof token == 'string') {
+                token = $(token);
+            }
+            var self = this;
+            this.delayedExec(function() {
+                self.stripTransition(token);
+                var box = self.attachToNewParentNoDestroy(token, finalPlace);
+                self.setTransition(token, "all " + duration + "ms ease-in-out");
+                self.placeOnObjectDirect(token, finalPlace, x, y);
+            }, function() {
+                self.stripTransition(token);
+                if (onEnd) onEnd(token);
+            }, duration, delay);
+        },
+
+        placeOnObjectDirect : function(mobileObj, targetObj, x, y) {
+            var left = dojo.style(mobileObj, "left");
+            var top = dojo.style(mobileObj, "top");
+            dojo.style(mobileObj, "left", x + "px");
+            dojo.style(mobileObj, "top", y + "px");
+        },
+
+        delayedExec : function(onStart, onEnd, duration, delay) {
+            if (typeof duration == "undefined") {
+                duration = 500;
+            }
+            if (typeof delay == "undefined") {
+                delay = 0;
+            }
+            if (this.instantaneousMode) {
+                delay = Math.min(1, delay);
+                duration = Math.min(1, duration);
+            }
+            if (delay) {
+                setTimeout(function() {
+                    onStart();
+                    if (onEnd) {
+                        setTimeout(onEnd, duration);
+                    }
+                }, delay);
+            } else {
+                onStart();
+                if (onEnd) {
+                    setTimeout(onEnd, duration);
+                }
+            }
+
+        },
         // /////////////////////////////////////////////////
         // // Player's action
         /*
@@ -531,16 +645,17 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
             console.log('onDone ' + id);
             dojo.stopEvent(event);
             var choices = "";
-            for (var i = 0; i < 100; i++) {
-                var gpos = i;
-                var ship = this.getShipOnGrid(gpos);
-                if (ship) {
-       
-                    var grid = this.getX_YfromOffset(gpos);
-                    choices += " " + ship + "_at_" + grid;
-                }
-
+            var res = dojo.query(".grid .fleetship");
+            for ( var i=0;i<res.length;i++) {
+                var node = res[i];
+                if (!node) continue;
+                var grid = node.parentNode.id;
+                var dirid = 'h';
+                var ship = node.id;
+                if (dojo.hasClass(node,'ship_v')) dirid='v';
+                choices += " " + ship + "_at_" + grid + "_" + dirid;
             }
+            
             console.log("sending " + choices);
             this.ajaxAction('playPlace', {
                 ships : choices.trim()

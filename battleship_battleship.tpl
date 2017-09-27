@@ -24,7 +24,7 @@
     
     Please REMOVE this comment before publishing your game on BGA
 -->
-
+<h1>Not working now</h1>
 
 <div class="board">
 	<div class="background-grids">
@@ -46,58 +46,21 @@
 		</div>
 		<!-- END grid -->
 
-
-		<table class="fleet">
-			<caption id="fleet_title" class="board_title ships_title">{FLEET_CAPTION}</caption>
-			<tbody>
-				<tr class="fleet_5">
-					<td>1x</td>
-					<td class="fleetship_name">Aicraft Carrier</td>
-					<td><div id="fleetship_5_1_1" class="fleetship"></div></td>
-					<td><div id="fleetship_5_1_2" class="fleetship"></div></td>
-					<td><div id="fleetship_5_1_3" class="fleetship"></div></td>
-					<td><div id="fleetship_5_1_4" class="fleetship"></div></td>
-					<td><div id="fleetship_5_1_5" class="fleetship"></div></td>
-				</tr>
-				<tr class="fleet_4">
-					<td>1x</td>
-					<td class="fleetship_name">Battleship</td>
-					<td><div id="fleetship_4_1_1" class="fleetship"></div></td>
-					<td><div id="fleetship_4_1_2" class="fleetship"></div></td>
-					<td><div id="fleetship_4_1_3" class="fleetship"></div></td>
-					<td><div id="fleetship_4_1_4" class="fleetship"></div></td>
-			
-					<td></td>
-				</tr>
-				<tr class="fleet_3">
-					<td>1x</td>
-					<td class="fleetship_name">Cruiser</td>
-					<td><div id="fleetship_3_1_1" class="fleetship"></div></td>
-					<td><div id="fleetship_3_1_2" class="fleetship"></div></td>
-					<td><div id="fleetship_3_1_3" class="fleetship"></div></td>
-					<td></td>
-					<td></td>
-				</tr>
-				<tr class="fleet_2">
-					<td>2x</td>
-					<td class="fleetship_name">Destroyer</td>
-					<td><div id="fleetship_2_1_1" class="fleetship"></div></td>
-					<td><div id="fleetship_2_1_2" class="fleetship"></div></td>
-					<td></td>
-					<td><div id="fleetship_2_2_1" class="fleetship"></div></td>
-					<td><div id="fleetship_2_2_2" class="fleetship"></div></td>
-				</tr>
-				<tr class="fleet_1">
-					<td>2x</td>
-					<td class="fleetship_name">Submarine</td>
-					<td><div id="fleetship_1_1_1" class="fleetship"></div></td>
-					<td></td>
-					<td><div id="fleetship_1_2_1" class="fleetship"></div></td>
-					<td></td>
-					<td></td>
-				</tr>
-			</tbody>
-		</table>
+	
+	
+		<div class="fleet-wrap">
+			<div id="fleet_title" class="board_title ships_title caption">{FLEET_CAPTION}</div>
+			<div id="fleet" class="fleet">
+			   	<!-- BEGIN fleetRow -->
+				<div class="fleet-row">
+					<div class="fleetship_name">{NAME}</div>
+					<div id="slot_{ID}" class="fleet-slot">
+						<div id={ID} class="fleetship {ID} {CLASS}" style="{STYLE}"></div>
+					</div>
+				</div>
+				<!-- END fleetRow -->
+			</div>
+		</div>
 
 
 	</div>

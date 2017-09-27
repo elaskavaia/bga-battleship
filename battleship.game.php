@@ -31,13 +31,25 @@ class BattleShip extends APP_Extended {
         parent::__construct();
         self::initGameStateLabels(
                 array (
-                        "ship_num" => 10,
+                        "ship_num" => 10, // number of grid covered by ships
+                     
                         // game variants
                         "fleet" => 100, 
+                        "grid_width" => 101,
             //      ...
         ));
+        /*
+         * Board data:
+         * key: "board_${pnum}_${x}_{y}" location: "board_${pnum}" state: 0/1/2/3
+         *     where state 0 - nothing there, 1 - ship there, 2 - hit and miss, 3 - hit and ship
+         * Fleet data:
+         * key: "fleet_${pnum}_fleetship_${size}_{numindex}" location: "grid_${pnum}_${x}_{y}_${vert}" state: 1/3/7
+         *    where state 0 - not placed, 1 - placed, 3 - hit, 7 - sunk, ${vert}: - v - vertical or h - horizontal
+         * 
+         */
         $this->tokens = new Tokens();
         $this->gameinit = false;
+        $this->width = 0;
     }
 
     protected function getGameName() {
@@ -77,6 +89,7 @@ class BattleShip extends APP_Extended {
          */
         // Init global values with their initial values
         self::setGameStateInitialValue('ship_num', 18);
+        self::setGameStateInitialValue('grid_width', 10); // XXX init from options
         // INIT GAME STATISTIC
         $all_stats = $this->getStatTypes();
         $player_stats = $all_stats ['player'];
@@ -98,17 +111,19 @@ class BattleShip extends APP_Extended {
     }
 
     function initTables() {
-        // Create ships
+            // Create ships
         $option = $this->getGameStateValue('fleet');
-        if (!$option) $option=1;
+        if (! $option)
+            $option = 1;
         $shipconfg = $this->fleetconfig[$option];
+        $width = $this->getWidth();
         for ($p = 1; $p <= 2; $p ++) {
             foreach ( $shipconfg as $size => $num ) {
                 $this->tokens->createTokensPack("fleet_${p}_fleetship_${size}_{INDEX}", "fleet", $num, 1);
             }
             // Board
-            for ($x = 1; $x <= 10; $x ++) {
-                $this->tokens->createTokensPack("board_${p}_${x}_{INDEX}", "board_${p}", 10, 1);
+            for ($x = 1; $x <= $width; $x ++) {
+                $this->tokens->createTokensPack("board_${p}_${x}_{INDEX}", "board_${p}", $width, 1);
             }
         }
     }
@@ -133,26 +148,32 @@ class BattleShip extends APP_Extended {
         $board_state = array ();
         $pos = $this->getPlayerPosition($current_player_id);
         $resall = array ();
+        $fleetall = array ();
         if ($pos) {
             $opos = 3 - $pos;
             $resall = array_merge($resall, $this->tokens->getTokensInLocation("board_${opos}", 3));
             $resall = array_merge($resall, $this->tokens->getTokensInLocation("board_${opos}", 2));
             $resall = array_merge($resall, $this->tokens->getTokensInLocation("board_${pos}"));
+            
+            $fleetall = array_merge($fleetall, $this->tokens->getTokensOfTypeInLocation("fleet_${pos}"));
+            $fleetall = array_merge($fleetall, $this->tokens->getTokensOfTypeInLocation("fleet_${opos}", null, 7));
         } else { // spectator
-            $resall = array_merge($resall, $this->tokens->getTokensInLocation(null, 3));
-            $resall = array_merge($resall, $this->tokens->getTokensInLocation(null, 2));
+            $resall = array_merge($resall, $this->tokens->getTokensInLocation("board", 3));
+            $resall = array_merge($resall, $this->tokens->getTokensInLocation("board", 2));
+            $fleetall = array_merge($fleetall, $this->tokens->getTokensOfTypeInLocation("fleet", null, 7));
         }
         foreach ( $resall as $key => $info ) {
             $board_state [$key] = $info ['state'];
         }
         $result ['board_state'] = $board_state;
+        $result ['fleet'] = $fleetall;
+
         
-        $option = $this->getGameStateValue('fleet');
-        if (!$option) $option=1;
         
-        $result ['fleetconfig'] = $this->fleetconfig;
-        $result ['fleetoption'] = $option;
-        $result ['width'] = 10;
+        $result ['fleetconfig'] = $this->getFleetConfig();
+     
+        
+        $result ['width'] = $this->getWidth();
         return $result;
     }
 
@@ -240,6 +261,29 @@ class BattleShip extends APP_Extended {
         return true;
     }
 
+    function getWidth() {
+        if (! $this->width)
+            $this->width = $this->getGameStateValue('grid_width');
+        return $this->width;
+    }
+    
+    function getFleetConfig() {
+        $option = $this->getGameStateValue('fleet');
+        if (!$option) $option=1;
+        
+        return $this->fleetconfig[$option];
+    }
+    
+    function getFleetShipNum() {
+        $config = $this->getFleetConfig();
+        $nums = $config['nums'];
+        $sum = 0;
+        foreach ($nums as $size => $num) {
+            $sum+=$num;
+        }        
+        return $sum;
+    }
+
     //////////////////////////////////////////////////////////////////////////////
     //////////// Player actions
     //////////// 
@@ -252,10 +296,10 @@ class BattleShip extends APP_Extended {
         $player_id = $this->getCurrentPlayerId();
         $pos = $this->getPlayerPosition($player_id);
         // ships in form 
-        // fleetship_3_1_3_at_2_3 fleetship_1_2_1_at_4_7 fleetship_2_1_1_at_6_3
+        // fleetship_3_1_at_grid_0_2_3_v fleetship_1_2_at_grid_0_4_7_h 
         $arr = explode(' ', $ships);
         $this->systemAssertTrue("Invalid payload", count($arr) > 0);
-        $ship_num = $this->getGameStateValue('ship_num');
+        $ship_num = $this->getFleetShipNum();
         $this->warn("ship num $ship_num");
         $this->userAssertTrue(self::_("Not enough ships placed"), count($arr) == $ship_num);
         foreach ( $arr as $key ) {
@@ -263,16 +307,16 @@ class BattleShip extends APP_Extended {
             $parts = explode('_at_', $key);
             $this->systemAssertTrue("Invalid payload", count($parts) == 2);
             $coords = explode('_', $parts [1]);
-            $this->systemAssertTrue("Invalid payload", count($coords) == 2);
-            $x = $coords [0];
-            $y = $coords [1];
+            $this->systemAssertTrue("Invalid payload", count($coords) == 5);
+            $x = $coords [2];
+            $y = $coords [3];
             $ship = $parts [0];
             $dpos = "board_${pos}_${x}_${y}";
             $this->tokens->setTokenState($dpos, 1);
-            $shipparts = explode('_', $ship);
-            unset($shipparts [3]);
-            $shipclass = implode('_', $shipparts);
-            $this->tokens->setTokenState("fleet_${pos}_$shipclass", $shipparts [1]);
+        
+            $vert= $coords[4];
+            $location = "grid_${pos}_${x}_${y}_${vert}";
+            $this->tokens->moveToken("fleet_${pos}_$ship", $location, 1);
         }
         $this->notifyWithName('playPlace', clienttranslate('${player_name} placed ships'), array (), $player_id);
         $this->gamestate->setPlayerNonMultiactive($player_id, 'next');
@@ -313,8 +357,9 @@ class BattleShip extends APP_Extended {
     }
 
     public function action_playBot() {
-        $x = rand(1, 10);
-        $y = rand(1, 10);
+        $width = $this->getWidth();
+        $x = rand(1, $width);
+        $y = rand(1, $width);
         $this->action_playAttack("${x}_${y}");
     }
 
@@ -343,9 +388,6 @@ class BattleShip extends APP_Extended {
      * Here, you can create methods defined as "game state actions" (see "action" property in states.inc.php).
      * The action method of state X is called everytime the current game state is set to X.
      */
-    function st______GAME_STATE_ACTIONS___() {
-        return 0;
-    }
 
     //////////// --- Game state actions generated begin ---
     function st_MultiPlayerInit() {

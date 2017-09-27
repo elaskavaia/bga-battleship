@@ -97,10 +97,7 @@ html, .mode_3d #game_play_area_background {
 	height: 440px;
 }
 
-.fleet {
-	right: 0px;
-	top: 52px;
-}
+
 
 .table-cell {
 	display: inline-block;
@@ -124,6 +121,10 @@ html, .mode_3d #game_play_area_background {
 	line-height: 40px;
 }
 
+.table-cell > * {
+	position: absolute;
+}
+
 .grid .first-cell {
 	pointer-events: none;
 }
@@ -138,33 +139,37 @@ html, .mode_3d #game_play_area_background {
 	border-bottom: 1px solid black;
 }
 
-
-
-.fleet td {
-	height: 26px;
-	width: 26px;
+.fleet-wrap {
+	right: 0px;
+	top: 0px;
 }
 
-.fleet td:first-child {
-	padding: 0px 5px 0px 5px;
-}
 
-.fleet td.fleetship_name {
+.fleet .fleetship_name {
 	width: 120px;
 	padding: 0px 5px 0px 5px;
 	text-align: left;
 }
+.fleet .fleet-row > * {
+	display: inline-block;
+}
 
-.fleet tr {
-	
+.fleet-slot {
+	width: 130px;
+	height: 26px;
+}
+
+.fleet > * {
+		display: block;
 }
 
 .fleetship {
-	background: white;
-	box-shadow: inset 0px 0px 0px 2px black;
+	/*background: white;
+	box-shadow: inset 0px 0px 0px 2px black; */
 	height: 26px;
 	vertical-align: middle;
 	text-align: center;
+	width: 130px;	
 }
 
 .ship {
@@ -173,12 +178,21 @@ html, .mode_3d #game_play_area_background {
 	text-align: center;
 }
 
-.fleetship.used {
+.preship::after {
+	content: "?";
+}
+
+.used {
 	background-color: gray;
 }
 
 .ship.error {
 	background-color: red;
+}
+
+.ship_v {
+	transform: rotate(90deg);
+	transform-origin: 13px 13px;
 }
 
 .state_2::after {
@@ -196,16 +210,14 @@ html, .mode_3d #game_play_area_background {
 	content: "X";
 }
 
-.fleetship_2_1_1 {
-	background-image: url(img/fleet.png);
-}
 
-.grid_0 .ship {
+
+.grid .fleetship, .fleet .fleetship {
 	background-image: url(img/fleet.png);
 	background-size: 156px;
 }
 
-.fleetship_5_1_1 {
+.fleetship_5_1_1, .fleetship_5_1{
 	background-position: 0% 0%;
 }
 
@@ -225,7 +237,7 @@ html, .mode_3d #game_play_area_background {
 	background-position: 80% 0%;
 }
 
-.fleetship_4_1_1 {
+.fleetship_4_1_1, .fleetship_4_1 {
 	background-position: 0% 11%;
 }
 
@@ -241,8 +253,12 @@ html, .mode_3d #game_play_area_background {
 	background-position: 60% 11%;
 }
 
-.fleetship_3_1_1 {
+.fleetship_3_1_1, .fleetship_3_1 {
 	background-position: 0% 22%;
+}
+
+.fleetship_3_2_1, .fleetship_3_2 {
+	background-position: 50% 22%;
 }
 
 .fleetship_3_1_2 {
@@ -253,7 +269,7 @@ html, .mode_3d #game_play_area_background {
 	background-position: 40% 22%;
 }
 
-.fleetship_2_1_1 {
+.fleetship_2_1_1, .fleetship_2_1, .fleetship_2_2_1, .fleetship_2_2 {
 	background-position: 0% 33%;
 }
 
@@ -261,7 +277,7 @@ html, .mode_3d #game_play_area_background {
 	background-position: 20% 33%;
 }
 
-.fleetship_1_1_1 {
+.fleetship_1_1_1, .fleetship_1_1, .fleetship_1_2_1, .fleetship_1_2 {
 	background-position: 0% 44%;
 }
 

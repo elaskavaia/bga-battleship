@@ -73,11 +73,12 @@ class view_battleship_battleship extends game_view {
         // Get players & players number
         $players = $this->game->loadPlayersBasicInfos();
         $players_nbr = count($players);
+        $width = $this->game->getWidth();
+        $fleetconfig = $this->game->getFleetConfig();
         /**
          * ********* Place your code below: ***********
          */
-        $letter = array (0 => 'LE',1 => 'A',2 => 'B',3 => 'C',4 => 'D',5 => 'E',6 => 'F',7 => 'G',8 => 'H',9 => 'I',
-                10 => 'J' );
+
         $this->page->begin_block("battleship_battleship", "gridCell");
         $this->page->begin_block("battleship_battleship", "gridRow");
         $this->page->begin_block("battleship_battleship", "grid");
@@ -87,15 +88,15 @@ class view_battleship_battleship extends game_view {
             if ($a==1) $w=40;
             else $w=26;
             
-            for ($b = 0; $b < 11; $b ++) {
+            for ($b = 0; $b < $width+1; $b ++) {
                 $this->page->reset_subblocks('gridCell');
-                for ($c = 0; $c < 11; $c ++) {
+                for ($c = 0; $c < $width+1; $c ++) {
                     $class = $this->getClass($b, $c);
                     $content = $this->cellContent($b, $c);
                     $top = $b * $w;
                     $left= $c * $w;
                     $this->page->insert_block('gridCell', array ('CELL_CLASS' => $class,'CELL_CONTENT' => $content,
-                            'GRID' => 'grid_' . $a,'LETTER' => $letter [$b],'NUMBER' => $c,
+                            'GRID' => 'grid_' . $a,'LETTER' => $c,'NUMBER' => $b,
                             'TOP' => $top, 'LEFT' => $left,
                     ));
                 }
@@ -110,6 +111,19 @@ class view_battleship_battleship extends game_view {
         }
         
         $this->tpl['FLEET_CAPTION'] = self::_("FLEET");
+        $this->page->begin_block("battleship_battleship", "fleetRow");
+        $nums = $fleetconfig ['nums'];
+        foreach ( $nums as $size => $num ) {
+            $fw= 26 * $size;
+            for ($a = 1; $a <= $num; $a ++) {
+                $this->page->insert_block('fleetRow', array ('ID' => "fleetship_${size}_${a}",
+                        'CLASS' => "fleetship_${size}",
+                        'NAME' => self::_($fleetconfig ['name'][$size*10+$a]),
+                        'STYLE' => "width: ${fw}px;"
+                        
+                ));
+            }
+        }
         
         /*
          *
