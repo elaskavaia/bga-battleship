@@ -375,6 +375,24 @@ class Tokens extends APP_GameClass {
         return $result;
     }
 
+    function getAllTokens($order_by = null) {
+        $sql = $this->getSelectQuery();
+        if ($order_by !== null)
+            $sql .= " ORDER BY $order_by";
+        $dbres = self::DbQuery($sql);
+        $result = array ();
+        $i = 0;
+        while ( $row = mysql_fetch_assoc($dbres) ) {
+            if ($order_by !== null) {
+                $result [$i] = $row;
+            } else {
+                $result [$row ['key']] = $row;
+            }
+            $i ++;
+        }
+        return $result;
+    }
+
     
     function getTokenState($token_id) {
         $res = $this->getTokenInfo($token_id);

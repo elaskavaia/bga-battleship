@@ -85,7 +85,7 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
             for ( var key in gamedatas.fleet) {
                 var ship_info = gamedatas.fleet[key];
                 // key: "fleet_${pnum}_fleetship_${size}_{numindex}"
-                // loc: grid_${pnum}_${x}_{y}_${vert}
+                // loc: board_${pnum}_${x}_{y}_${vert}
            
                 var loc = ship_info.location;
                 console.log(key + "->" + loc + " for "+this.player_no);
@@ -93,6 +93,7 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
                 var num = parseInt(sloc[1]); 
                 if (num == this.player_no) {
                     // my  fleet
+                    console.log(key + "-.->" + loc );
                     var gpos = this.gridPosition(loc);
                     var dirid =  sloc[4];
                     var skey = key.split('_');
@@ -689,7 +690,7 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
             // during 3 seconds after calling the method in order to let the players
             // see what is happening in the game.
             // dojo.subscribe( 'cardPlayed', this, "notif_cardPlayed" );
-            // this.notifqueue.setSynchronous( 'cardPlayed', 3000 );
+            this.notifqueue.setSynchronous( 'playAttack', 700 );
             // 
         },
 

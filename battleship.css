@@ -199,14 +199,14 @@ html, .mode_3d #game_play_area_background {
 	content: "~";
 }
 
-.state_3 {
+.state_3, .state_7 {
 	background-color: white;
 	color: red;
 	font-weight: bolder;
 	box-shadow: inset 0px 0px 0px 2px black;
 }
 
-.state_3::after {
+.state_3::after,.state_7::after  {
 	content: "X";
 }
 
