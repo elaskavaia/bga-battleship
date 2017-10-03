@@ -36,7 +36,7 @@ $this->fleetconfig = array (
              )
         ),
         2 => array(
-             "nums"=>array (5 => 1,4 => 1,3 => 3,2 => 1,1 => 0 ),
+             "nums"=>array (5 => 1,4 => 1,3 => 2,2 => 1,1 => 0 ),
              "name"=> array(
                      51=>clienttranslate("Aircraft Carrier"),
                      41=>clienttranslate("Battleship"),

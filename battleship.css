@@ -158,7 +158,9 @@ html, .mode_3d #game_play_area_background {
 	width: 130px;
 	height: 26px;
 }
-
+.fleet-slot > * {
+	position: absolute;
+}
 .fleet > * {
 		display: block;
 }
@@ -183,7 +185,9 @@ html, .mode_3d #game_play_area_background {
 }
 
 .used {
-	background-color: gray;
+outline-style: solid;
+    outline-color: gray;
+    outline-width: 1px;
 }
 
 .ship.error {
@@ -200,21 +204,75 @@ html, .mode_3d #game_play_area_background {
 }
 
 .state_3, .state_7 {
-	background-color: white;
 	color: red;
 	font-weight: bolder;
-	box-shadow: inset 0px 0px 0px 2px black;
+}
+.state_7 {
+	/* box-shadow: inset 0px 0px 0px 2px black; */
 }
 
 .state_3::after,.state_7::after  {
 	content: "X";
 }
 
-
+.fire_hit{
+	background-color: red;
+}
 
 .grid .fleetship, .fleet .fleetship {
 	background-image: url(img/fleet.png);
 	background-size: 156px;
+}
+
+.grid_1 .fleetship {
+	background-size: 240px;
+	height: 40px;
+	line-height: 40px;
+}
+
+.grid_1  .ship_v {
+	transform: rotate(90deg);
+	transform-origin: 20px 20px;
+}
+
+.fleetship_1 {
+	width: calc(26px * 1);
+}
+
+.grid_1 .fleetship_1 {
+	width: calc(40px * 1);
+}
+
+.fleetship_2 {
+	width: calc(26px * 2);
+}
+
+.grid_1 .fleetship_2 {
+	width: calc(40px * 2);
+}
+
+.fleetship_3 {
+	width: calc(26px * 3);
+}
+
+.grid_1 .fleetship_3 {
+	width: calc(40px * 3);
+}
+
+.fleetship_4 {
+	width: calc(26px * 4);
+}
+
+.grid_1 .fleetship_4 {
+	width: calc(40px * 4);
+}
+
+.fleetship_5 {
+	width: calc(26px * 5);
+}
+
+.grid_1 .fleetship_5 {
+	width: calc(40px * 5);
 }
 
 .fleetship_5_1_1, .fleetship_5_1{
@@ -258,7 +316,7 @@ html, .mode_3d #game_play_area_background {
 }
 
 .fleetship_3_2_1, .fleetship_3_2 {
-	background-position: 50% 22%;
+	background-position: 100% 22%;
 }
 
 .fleetship_3_1_2 {

@@ -51,16 +51,30 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
                 this.player_color = gamedatas.players[this.player_id].color;
                 this.player_no = gamedatas.players[this.player_id].no;
             }
-
+            this.opponent_no = 3 - this.player_no;
+            
             // Setting up player boards
             for ( var player_id in gamedatas.players) {
                 var player = gamedatas.players[player_id];
 
                 // TODO: Setting up players boards if needed
             }
-            // TODO: Set up your game interface here, according to "gamedatas"
-            for ( var loc in gamedatas.board_state) {
-                var state = gamedatas.board_state[loc];
+            
+            this.setupBoard(gamedatas);
+            // Connect
+            this.connectClass('gridPlacement', 'onclick', 'onGrid');
+
+            // Setup game notifications to handle (see "setupNotifications" method below)
+            this.setupNotifications();
+
+            this.hookBot();
+
+            console.log("Ending game setup");
+        },
+        
+        setupBoard: function(gamedatas) {
+            for ( var loc in gamedatas.board.board_state) {
+                var state = gamedatas.board.board_state[loc];
                 
                 var sloc = loc.split('_');
                 if (sloc[0] == 'board') {
@@ -82,36 +96,34 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
                 } 
             }
             
-            for ( var key in gamedatas.fleet) {
-                var ship_info = gamedatas.fleet[key];
+            for ( var key in gamedatas.board.fleet) {
+                var ship_info = gamedatas.board.fleet[key];
                 // key: "fleet_${pnum}_fleetship_${size}_{numindex}"
                 // loc: board_${pnum}_${x}_{y}_${vert}
            
                 var loc = ship_info.location;
                 console.log(key + "->" + loc + " for "+this.player_no);
                 var sloc = loc.split('_');
-                var num = parseInt(sloc[1]); 
+                var num = parseInt(sloc[1]);
+                
+                var gpos = this.gridPosition(loc);
+                var dirid =  sloc[4];
+                var skey = key.split('_');
+                var ship = skey[2]+"_"+skey[3]+"_"+skey[4];
+                
                 if (num == this.player_no) {
                     // my  fleet
-                    console.log(key + "-.->" + loc );
-                    var gpos = this.gridPosition(loc);
-                    var dirid =  sloc[4];
-                    var skey = key.split('_');
-                    var ship = skey[2]+"_"+skey[3]+"_"+skey[4];
+     
                     this.moveShipOnGrid(ship,gpos,dirid);
+                } else {
+                    
+                    ship = "o"+ship;
+                    dojo.addClass(ship, 'ship_' + dirid);
+                    this.slideToObjectRelative(ship, 'grid_1_' + this.getX_YfromOffset(gpos), 500);
                 }
             }
 
             this.markupBoard();
-            // Connect
-            this.connectClass('gridPlacement', 'onclick', 'onGrid');
-
-            // Setup game notifications to handle (see "setupNotifications" method below)
-            this.setupNotifications();
-
-            this.hookBot();
-
-            console.log("Ending game setup");
         },
 
         hookBot : function() {
@@ -176,6 +188,7 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
                         if (this.bot) {
                             this.autoBotAction();
                         }
+                        $("fleet_title").innerHTML=_("ENEMY FLEET");
                         break;
                 }
             }
@@ -241,6 +254,11 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
             }
             //this.reconcileBoard();
             this.markupBoard();
+            if (dojo.query(".preship").length>0) {
+                this.setDescriptionOnMyTurn(_("Click on ship again to complete the ship"));
+            } else {
+                this.setDescriptionOnMyTurn(this.last_server_state.descriptionmyturn);
+            }
         },
         
         completeShip : function(gpos) {
@@ -302,7 +320,7 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
         },
         
         findFreeShip1 : function(num) {
-            var res = dojo.query(".fleet .fleetship_"+num);
+            var res = dojo.query(".fleet .own.fleetship_"+num);
             if (res.length>0) return res[0].id;
             return null;
         },
@@ -605,6 +623,42 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
             }
 
         },
+        
+        setMainTitle : function(text) {
+            var main = $('pagemaintitletext');
+            main.innerHTML = text;
+        },
+
+        divYou : function() {
+            var color = this.gamedatas.players[this.player_id].color;
+            var color_bg = "";
+            if (this.gamedatas.players[this.player_id] && this.gamedatas.players[this.player_id].color_back) {
+                color_bg = "background-color:#" + this.gamedatas.players[this.player_id].color_back + ";";
+            }
+            var you = "<span style=\"font-weight:bold;color:#" + color + ";" + color_bg + "\">" +
+                    __("lang_mainsite", "You") + "</span>";
+            return you;
+        },
+
+        setDescriptionOnMyTurn : function(text) {
+            this.gamedatas.gamestate.descriptionmyturn = text;
+            // this.updatePageTitle();
+            var tpl = dojo.clone(this.gamedatas.gamestate.args);
+            if (tpl === null) {
+                tpl = {};
+            }
+            var title = "";
+            if (this.isCurrentPlayerActive() && text !== null) {
+                tpl.you = this.divYou();
+                title = this.format_string_recursive(text, tpl);
+            }
+
+            if (title == "") {
+                this.setMainTitle("&nbsp;");
+            } else {
+                this.setMainTitle(title);
+            }
+        },
         // /////////////////////////////////////////////////
         // // Player's action
         /*
@@ -686,14 +740,21 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
             // Example 1: standard notification handling
             dojo.subscribe('playAttack', this, "notif_playAttack");
             dojo.subscribe('score', this, "notif_score");
+            dojo.subscribe('revealShips', this, "notif_revealShips");
             // Example 2: standard notification handling + tell the user interface to wait
             // during 3 seconds after calling the method in order to let the players
             // see what is happening in the game.
             // dojo.subscribe( 'cardPlayed', this, "notif_cardPlayed" );
-            this.notifqueue.setSynchronous( 'playAttack', 700 );
+            this.notifqueue.setSynchronous( 'playAttack', 300 );
+            this.notifqueue.setSynchronous( 'notif_revealShips', 2000 );
             // 
         },
-
+        notif_revealShips : function(notif) {
+            console.log('notif_revealShips');
+            console.log(notif); // Note: notif.args contains the board
+            this.gamedatas.board = notif.args.board;
+            this.setupBoard(this.gamedatas);
+        },
 
         notif_playAttack : function(notif) {
             console.log('notif_playAttack');
@@ -708,6 +769,37 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
                 var loc = this.gridId(0, sgrid[0], sgrid[1]);
                 this.changeTokenStateTo(loc, state);
             }
+            var message = "";
+            var clazz = "fire_missed";
+            switch (notif.args.state) {
+                case 2:
+                    message = _("Missed!");
+
+                    break;
+                case 3:
+                    message = _("Hit!");
+                    clazz = "fire_hit";
+                    break;
+                case 7:
+                    message = _("Sunk!");
+                    clazz = "fire_hit";
+
+                    if (notif.args.ship) {
+                        // $shiptoken = "fleet_${pos}_fleetship_${size}_${num}_${i}_${vert}";
+                        var sship = notif.args.ship.split("_");
+                        if (parseInt(sship[5]) == 1) {
+                            var ship = "ofleetship_" + sship[3] + "_" + sship[4];
+                            var dirid = sship[6];
+                            var ogrid = 'grid_1_' + grid;
+                            console.log("moving " + ship + " as " + dirid + " on " + ogrid);
+                            dojo.addClass(ship, 'ship_' + dirid);
+                            this.slideToObjectRelative(ship, ogrid, 500);
+                        }
+                    }
+
+                    break;
+            }
+            if (notif.log && message) this.showBubble(loc, message, 0, 500, clazz);
 
             // arguments specified during you "notifyAllPlayers" / "notifyPlayer" PHP call // TODO: play the card in the user interface.
         },

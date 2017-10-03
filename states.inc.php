@@ -70,7 +70,7 @@ $machinestates = array(
             'action' => 'st_MultiPlayerInit',
             'args' => 'arg_playerTurnPlace',
     		"possibleactions" => array( "playPlace" ),
-    		"transitions" => array( "next" => 4 )
+            "transitions" => array( "next" => 4, "last" => 99)
     ),
         
     3 => array(

@@ -24,7 +24,6 @@
     
     Please REMOVE this comment before publishing your game on BGA
 -->
-<h1>Not working now</h1>
 
 <div class="board">
 	<div class="background-grids">
@@ -55,7 +54,8 @@
 				<div class="fleet-row">
 					<div class="fleetship_name">{NAME}</div>
 					<div id="slot_{ID}" class="fleet-slot">
-						<div id={ID} class="fleetship {ID} {CLASS}" style="{STYLE}"></div>
+						<div id="{ID}" class="fleetship {ID} {CLASS} own"></div>
+						<div id="o{ID}" class="fleetship {ID} {CLASS}"></div>
 					</div>
 				</div>
 				<!-- END fleetRow -->

@@ -118,8 +118,7 @@ class view_battleship_battleship extends game_view {
             for ($a = 1; $a <= $num; $a ++) {
                 $this->page->insert_block('fleetRow', array ('ID' => "fleetship_${size}_${a}",
                         'CLASS' => "fleetship_${size}",
-                        'NAME' => self::_($fleetconfig ['name'][$size*10+$a]),
-                        'STYLE' => "width: ${fw}px;"
+                        'NAME' => self::_($fleetconfig ['name'][$size*10+$a])
                         
                 ));
             }

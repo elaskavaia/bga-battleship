@@ -137,11 +137,26 @@ class BattleShip extends APP_Extended {
         $sql = "SELECT player_id id, player_score score, player_color color, player_no no FROM player ";
         $result ['players'] = self::getCollectionFromDb($sql);
         // Gather all information about current game situation (visible by player $current_player_id).
+
+
+        
+        
+        $result ['board'] = $this->getBoardState($current_player_id, false);
+        $result ['fleetconfig'] = $this->getFleetConfig();
+     
+        
+        $result ['width'] = $this->getWidth();
+        return $result;
+    }
+    
+    function getBoardState($current_player_id, $reveal){
+        $result = array();
         $board_state = array ();
         $pos = $this->getPlayerPosition($current_player_id);
+        
         $resall = $this->tokens->getAllTokens();
         $fleetall = array ();
-       
+        
         foreach ( $resall as $key => $info ) {
             $state = $info ['state'];
             $location = $info['location'];
@@ -149,14 +164,23 @@ class BattleShip extends APP_Extended {
             if ($parts [0] === 'fleet') {
                 //  $shiptoken = "fleet_${pos}_fleetship_${size}_${num}_${i}_${vert}";
                 list ( $fl, $xpos, $fls, $size, $num, $j, $vert ) = $parts;
-                if ($state == 1 && $pos != $xpos) {
-                    continue; // hide ships
+                if (! $reveal) {
+                    if ($state == 1  && $pos != $xpos) {
+                        continue; // hide ships
+                    }
                 }
-              
-                if ($j==1) {
-                    $ship = "fleet_${xpos}_fleetship_${size}_${num}";
-                    $loc = $info['location']."_${vert}";
-                    $fleetall[$ship]=array('location'=>$loc,'state'=>$state,'key'=>$ship);
+                if ($j == 1) {
+                    $hide = false;
+                    if (! $reveal) {
+                        if ($state == 3 && $pos != $xpos) {
+                            $hide = true; // hide hit ships
+                        }
+                    }
+                    if (! $hide) {
+                        $ship = "fleet_${xpos}_fleetship_${size}_${num}";
+                        $loc = $info ['location'] . "_${vert}";
+                        $fleetall [$ship] = array ('location' => $loc,'state' => $state,'key' => $ship );
+                    }
                 }
             }
             
@@ -164,13 +188,6 @@ class BattleShip extends APP_Extended {
         }
         $result ['board_state'] = $board_state;
         $result ['fleet'] = $fleetall;
-
-        
-        
-        $result ['fleetconfig'] = $this->getFleetConfig();
-     
-        
-        $result ['width'] = $this->getWidth();
         return $result;
     }
 
@@ -248,7 +265,7 @@ class BattleShip extends APP_Extended {
         foreach ( $tokens as $token_key => $location) {
             $this->tokens->setTokenState($token_key, $state);
             list ( $board, $pos, $x, $y ) = explode('_', $location);
-            $this->notifyWithName('playAttack', '', array ('grid' => "${x}_${y}",'state' => $state ));
+            $this->notifyWithName('playAttack', '', array ('grid' => "${x}_${y}",'state' => $state, 'ship'=>$token_key ));
         }
         return true;
     }
@@ -306,8 +323,8 @@ class BattleShip extends APP_Extended {
         $arr = explode(' ', $ships);
         $this->systemAssertTrue("Invalid payload", count($arr) > 0);
         $ship_num = $this->getFleetShipNum();
-        $this->warn("ship num $ship_num");
-        //$this->userAssertTrue(self::_("Not enough ships placed"), count($arr) == $ship_num);
+       // $this->warn("ship num $ship_num");
+        $this->userAssertTrue(self::_("Not enough ships placed"), count($arr) == $ship_num);
         $shipconfg = $this->getFleetConfig();
          $width = $this->getWidth();
 
@@ -368,18 +385,19 @@ class BattleShip extends APP_Extended {
             $state = 2;
             $this->tokens->createToken($key, $location, $state);
             $this->notifyWithName('playAttack', clienttranslate('${player_name} fired at ${pos} and missed'), array (
-                    'pos' => $hgrid,'grid' => $grid,'state' => $state,'last' => false ));
+                    'pos' => $hgrid,'grid' => $grid,'state' => $state ));
             $this->incStat(1, 'battle_player_miss', $player_id);
         } else if ($state == 1) {
             $state = 3;
             $this->tokens->setTokenState($key, $state);
             $sunk = $this->isShipSunk($key);
-            if ($sunk)
+            if ($sunk) {
                 $message = clienttranslate('${player_name} fired at ${pos} and hit! Ship is sunk!');
-            else
+                $state = 7;
+            } else {
                 $message = clienttranslate('${player_name} fired at ${pos} and hit!');
-            $this->notifyWithName('playAttack', $message, array ('pos' => $hgrid,'grid' => $grid,'state' => $state,
-                    'last' => $sunk ));
+            }
+            $this->notifyWithName('playAttack', $message, array ('pos' => $hgrid,'grid' => $grid,'state' => $state ));
             $this->dbIncScoreValueAndNotify($player_id, 1, '');
             $this->incStat(1, 'battle_player_score_total', $player_id);
         }
@@ -387,10 +405,18 @@ class BattleShip extends APP_Extended {
     }
 
     public function action_playBot() {
-        $width = $this->getWidth();
-        $x = rand(1, $width);
-        $y = rand(1, $width);
-        $this->action_playAttack("${x}_${y}");
+        while ( true ) {
+            try {
+                $width = $this->getWidth();
+                $x = rand(1, $width);
+                $y = rand(1, $width);
+                $this->action_playAttack("${x}_${y}");
+                break;
+            } catch ( Exception $e ) {
+                continue;
+            }
+            
+        }
     }
 
     /*
@@ -428,10 +454,15 @@ class BattleShip extends APP_Extended {
         $next_player_id = $this->activeNextPlayerCustom();
         if ($next_player_id == null) {
             // end of game
-            $this->notifyWithName('playLog', clienttranslate('${player_name} WINS!!!'));
-            $this->gamestate->nextState('last'); // XXX fix
+            $board = $this->getBoardState($next_player_id, true);
+            $this->notifyWithName('revealShips', clienttranslate('${player_name} WINS!!! Revealing ships location'), array(
+                    'board' => $board
+            ));
+
+            $this->gamestate->nextState('last'); 
             return;
         }
+
         $this->gamestate->nextState('next');
     }
 
@@ -446,24 +477,14 @@ class BattleShip extends APP_Extended {
      * (ex: pass).
      */
     function zombieTurn($state, $active_player) {
+        $this->warn("Zombie turn in $state for $active_player");
         $statename = $state ['name'];
         if ($state ['type'] == "activeplayer") {
-            switch ($statename) {
-                default :
-                    $this->gamestate->nextState("next");
-                    break;
-            }
+            $this->gamestate->nextState("last");
             return;
         }
         if ($state ['type'] == "multipleactiveplayer") {
-            // Make sure player is in a non blocking status for role turn
-            $sql = "
-                UPDATE  player
-                SET     player_is_multiactive = 0
-                WHERE   player_id = $active_player
-            ";
-            self::DbQuery($sql);
-            $this->gamestate->updateMultiactiveOrNextState('next');
+            $this->gamestate->updateMultiactiveOrNextState('last');
             return;
         }
         throw new feException("Zombie mode not supported at this game state: " . $statename);
