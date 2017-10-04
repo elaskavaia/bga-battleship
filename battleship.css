@@ -162,7 +162,8 @@ html, .mode_3d #game_play_area_background {
 	position: absolute;
 }
 .fleet > * {
-		display: block;
+	display: block;
+	height: 26px;
 }
 
 .fleetship {
@@ -203,20 +204,30 @@ outline-style: solid;
 	content: "~";
 }
 
-.state_3, .state_7 {
+.state_3 {
 	color: red;
 	font-weight: bolder;
 }
 .state_7 {
-	/* box-shadow: inset 0px 0px 0px 2px black; */
+
 }
 
-.state_3::after,.state_7::after  {
+.state_7 .fleetship {
+		/* box-shadow: inset 0px 0px 0px 2px black; */
+	background-color:  red;
+}
+
+
+.state_3::after  {
 	content: "X";
 }
 
 .fire_hit{
 	background-color: red;
+}
+
+.playerTurnPlace .fleet .fleetship.enemy {
+	display: none;
 }
 
 .grid .fleetship, .fleet .fleetship {

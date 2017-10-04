@@ -110,7 +110,7 @@ class view_battleship_battleship extends game_view {
             $this->page->insert_block('grid', array ('GRID_CLASS' => 'grid_' . $a, 'GRID_CAPTION' => $cap));
         }
         
-        $this->tpl['FLEET_CAPTION'] = self::_("FLEET");
+        $this->tpl['FLEET_CAPTION'] = self::_("YOUR FLEET");
         $this->page->begin_block("battleship_battleship", "fleetRow");
         $nums = $fleetconfig ['nums'];
         foreach ( $nums as $size => $num ) {

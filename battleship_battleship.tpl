@@ -25,7 +25,7 @@
     Please REMOVE this comment before publishing your game on BGA
 -->
 
-<div class="board">
+<div id="board" class="board">
 	<div class="background-grids">
 
 
@@ -55,7 +55,7 @@
 					<div class="fleetship_name">{NAME}</div>
 					<div id="slot_{ID}" class="fleet-slot">
 						<div id="{ID}" class="fleetship {ID} {CLASS} own"></div>
-						<div id="o{ID}" class="fleetship {ID} {CLASS}"></div>
+						<div id="o{ID}" class="fleetship {ID} {CLASS} enemy"></div>
 					</div>
 				</div>
 				<!-- END fleetRow -->

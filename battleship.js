@@ -73,6 +73,15 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
         },
         
         setupBoard: function(gamedatas) {
+            this.gridToFleet = [];
+            this.shipToGrid = {};
+            if (this.getStateName() == 'playerTurnPlace') {
+                var res = dojo.query(".fleetship");
+                for (var i = 0; i < res.length; i++) {
+                    var node = res[i];
+                    this.moveShipOnGrid(node.id, null, null);
+                }
+            }
             for ( var loc in gamedatas.board.board_state) {
                 var state = gamedatas.board.board_state[loc];
                 
@@ -181,7 +190,7 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
         //
         onEnteringState : function(stateName, args) {
             console.log('Entering state: ' + stateName);
-
+            dojo.addClass($('board'),stateName);
             if (this.isCurrentPlayerActive()) {
                 switch (stateName) {
                     case 'playerTurnAttack':
@@ -199,6 +208,7 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
         //
         onLeavingState : function(stateName) {
             console.log('Leaving state: ' + stateName);
+            dojo.removeClass($('board'),stateName);
 
         },
 
@@ -213,6 +223,7 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
                     case 'playerTurnPlace':
                  
                         this.addActionButton('button_done', _('Done'), 'onDone');
+                        this.addActionButton('button_cancel', _('Cancel'), 'onCancel');
                         break;
 
                 }
@@ -370,14 +381,18 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
             console.log(ship + "-move->" + gpos +" "+dirid);
             if (gpos == null) { // remove
                 gpos = this.shipToGrid[ship];
-                if (gpos != null) {
-                    this.slideToObjectRelative(ship, 'slot_'+ship, 500); // fleet
+                var loc =  'slot_' + ship;
+                if ($(loc)) {
+              
+                    this.slideToObjectRelative(ship, loc, 500); // fleet
                 }
 
                 this.shipToGrid[ship] = null;
-                for (var x = 0; x < size; x++) {
-                    var spos = gpos + x * inc;
-                    this.gridToFleet[spos] = null;
+                if (gpos != null) {
+                    for (var x = 0; x < size; x++) {
+                        var spos = gpos + x * inc;
+                        this.gridToFleet[spos] = null;
+                    }
                 }
             } else { // add
                 dojo.addClass(ship, 'ship_' + dirid);
@@ -720,6 +735,7 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
             var id = event.currentTarget.id;
             console.log('onCancel ' + id);
             dojo.stopEvent(event);
+            this.setupBoard(this.gamedatas);
         },
         // /////////////////////////////////////////////////
         // // Reaction to cometD notifications
