@@ -815,7 +815,7 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
 
                     break;
             }
-            if (notif.log && message) this.showBubble(loc, message, 0, 500, clazz);
+            if (notif.log && message) this.showBubble(loc, message, 0, 700, clazz);
 
             // arguments specified during you "notifyAllPlayers" / "notifyPlayer" PHP call // TODO: play the card in the user interface.
         },
