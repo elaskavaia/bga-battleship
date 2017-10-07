@@ -240,9 +240,11 @@ html, .mode_3d #game_play_area_background {
 	display: none;
 }
 
-.grid .fleetship, .fleet .fleetship {
-	background-image: url(img/fleet.png);
+.fleetship {
+/*	background-image: url(img/fleet.png); */
 	background-size: 156px;
+	box-shadow: inset 0px 0px 2px 2px black;
+	border-radius: 10px;
 }
 
 .grid_1 .fleetship {
