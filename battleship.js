@@ -191,6 +191,7 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
         onEnteringState : function(stateName, args) {
             console.log('Entering state: ' + stateName);
             dojo.addClass($('board'),stateName);
+            dojo.query(".selected").removeClass("selected");
             if (this.isCurrentPlayerActive()) {
                 switch (stateName) {
                     case 'playerTurnAttack':
@@ -217,11 +218,11 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
         //        
         onUpdateActionButtons : function(stateName, args) {
             console.log('onUpdateActionButtons: ' + stateName);
-
+            this.attackGrid = null;
             if (this.isCurrentPlayerActive()) {
                 switch (stateName) {
                     case 'playerTurnPlace':
-                 
+                     
                         this.addActionButton('button_done', _('Done'), 'onDone');
                         this.addActionButton('button_cancel', _('Cancel'), 'onCancel');
                         break;
@@ -701,8 +702,18 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
                     this.showMessage(_('This is your own board silly!'), 'error');
                     return;
                 }
+         
                 var gpos = this.gridPosition(id);
                 var grid = this.getX_YfromOffset(gpos);
+                
+
+                if (this.attackGrid == null || this.attackGrid != grid) {
+                    this.attackGrid = grid;
+                    dojo.query(".selected").removeClass("selected");
+                    dojo.addClass(id,'selected');
+                    this.setDescriptionOnMyTurn(_("Click on grid again to confirm"));
+                    return;
+                }
                 this.ajaxAction('playAttack', {
                     grid : grid
                 });

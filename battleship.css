@@ -81,7 +81,6 @@ html, .mode_3d #game_play_area_background {
 .grid_1 {
 	left: 246px;
 	top: 246px;
-	pointer-events: none;
 	z-index: 10;
 }
 
@@ -110,7 +109,6 @@ html, .mode_3d #game_play_area_background {
 	vertical-align: top;
 	text-align: center;
 	background-color: transparent;
-	pointer-events: bounding-box;
 }
 
 .grid_1 .table-cell {
@@ -218,6 +216,11 @@ html, .mode_3d #game_play_area_background {
 	/* box-shadow: inset 0px 0px 0px 2px black; */
 	/* background-color:  red; */
 	
+}
+
+.selected {
+
+	box-shadow: inset 0px 0px 0px 2px blue; 
 }
 
 .state_3::after {
