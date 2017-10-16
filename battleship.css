@@ -219,8 +219,11 @@ html, .mode_3d #game_play_area_background {
 }
 
 .selected {
-
-	box-shadow: inset 0px 0px 0px 2px blue; 
+	/* Safari 3-4, iOS 4.0.2 - 4.2, Android 2.3+ */
+	-webkit-box-shadow: inset 0px 0px 0px 2px blue;
+	-moz-box-shadow: inset 0px 0px 0px 2px blue /* Firefox 3.5 - 3.6 */;
+	box-shadow: 0px 0px 0px 2px blue;
+	box-shadow: inset 0px 0px 0px 2px blue;
 }
 
 .state_3::after {
@@ -246,6 +249,10 @@ html, .mode_3d #game_play_area_background {
 .fleetship {
 /*	background-image: url(img/fleet.png); */
 	background-size: 156px;
+		/* Safari 3-4, iOS 4.0.2 - 4.2, Android 2.3+ */
+	-webkit-box-shadow: inset 0px 0px 2px 2px black;
+	-moz-box-shadow: inset 0px 0px 2px 2px black /* Firefox 3.5 - 3.6 */;
+	box-shadow: 0px 0px 2px 2px black;
 	box-shadow: inset 0px 0px 2px 2px black;
 	border-radius: 10px;
 }
