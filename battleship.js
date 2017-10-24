@@ -815,12 +815,17 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
                         // $shiptoken = "fleet_${pos}_fleetship_${size}_${num}_${i}_${vert}";
                         var sship = notif.args.ship.split("_");
                         if (parseInt(sship[5]) == 1) {
-                            var ship = "ofleetship_" + sship[3] + "_" + sship[4];
-                            var dirid = sship[6];
-                            var ogrid = 'grid_1_' + grid;
-                            console.log("moving " + ship + " as " + dirid + " on " + ogrid);
-                            dojo.addClass(ship, 'ship_' + dirid);
-                            this.slideToObjectRelative(ship, ogrid, 500);
+                            var playernum = getIntPart(notif.args.ship, 1);
+                            if (this.player_no == playernum) {
+                                // do nothing
+                            } else {
+                                var ship = "ofleetship_" + sship[3] + "_" + sship[4];
+                                var dirid = sship[6];
+                                var ogrid = 'grid_1_' + grid;
+                                console.log("moving " + ship + " as " + dirid + " on " + ogrid);
+                                dojo.addClass(ship, 'ship_' + dirid);
+                                this.slideToObjectRelative(ship, ogrid, 500);
+                            }
                         }
                     }
 
