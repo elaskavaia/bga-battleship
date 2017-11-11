@@ -14,7 +14,7 @@ $gameinfos = array(
         // Name of the game in English (will serve as the basis for translation)
         'game_name' => "Battleships Classic",
 // Game designer (or game designers, separated by commas)
-'designer' => 'Clifford Von Wickler',       
+'designer' => 'Unknown',       
 
 // Game artist (or game artists, separated by commas)
 'artist' => '',         
