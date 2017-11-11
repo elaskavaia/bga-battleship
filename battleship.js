@@ -50,13 +50,14 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
             } else {
                 this.player_color = gamedatas.players[this.player_id].color;
                 this.player_no = gamedatas.players[this.player_id].no;
+                this.player_id_as = this.player_id;
             }
             this.opponent_no = 3 - this.player_no;
             
             // Setting up player boards
             for ( var player_id in gamedatas.players) {
                 var player = gamedatas.players[player_id];
-
+                if (!this.player_id_as && player.no == 1) this.player_id_as = player_id;
                 // TODO: Setting up players boards if needed
             }
             
@@ -789,7 +790,7 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
             var state = parseInt(notif.args.state);
             var grid = notif.args.grid;
             var sgrid = grid.split("_");
-            if (notif.args.player_id == this.player_id) {
+            if (notif.args.player_id == this.player_id_as) {
                 var loc = this.gridId(1, sgrid[0], sgrid[1]);
                 this.changeTokenStateTo(loc, state);
             } else {
@@ -817,12 +818,20 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
                         if (parseInt(sship[5]) == 1) {
                             var playernum = getIntPart(notif.args.ship, 1);
                             if (this.player_no == playernum) {
-                                // do nothing
+                                // do nothing if real player because they have all the ships
+                                if (this.isSpectator) {
+                                    var ship = "fleetship_" + sship[3] + "_" + sship[4];
+                                    var dirid = sship[6];
+                                    var ogrid = 'grid_0_' + grid;
+                                    //console.log("moving " + ship + " as " + dirid + " on " + ogrid);
+                                    dojo.addClass(ship, 'ship_' + dirid);
+                                    this.slideToObjectRelative(ship, ogrid, 500);
+                                }
                             } else {
                                 var ship = "ofleetship_" + sship[3] + "_" + sship[4];
                                 var dirid = sship[6];
                                 var ogrid = 'grid_1_' + grid;
-                                console.log("moving " + ship + " as " + dirid + " on " + ogrid);
+                                //console.log("moving " + ship + " as " + dirid + " on " + ogrid);
                                 dojo.addClass(ship, 'ship_' + dirid);
                                 this.slideToObjectRelative(ship, ogrid, 500);
                             }
