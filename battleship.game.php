@@ -191,7 +191,7 @@ class BattleShip extends APP_Extended {
         return $result;
     }
 
-    /*
+        /*
      * getGameProgression:
      *
      * Compute and return the current game progression.
@@ -203,9 +203,11 @@ class BattleShip extends APP_Extended {
      */
     function getGameProgression() {
         $ship_num = $this->getFleetShipGridNum();
-        $ship_num1 = count($this->tokens->getTokensInLocation("board_1", 3));
-        $ship_num2 = count($this->tokens->getTokensInLocation("board_2", 3));
-        return ($ship_num1 + $ship_num2) / $ship_num / 2 * 100;
+        $ship_num1 = count($this->tokens->getTokensInLocation("board_1%", 3)) + count($this->tokens->getTokensInLocation("board_1%", 7));
+        $ship_num2 = count($this->tokens->getTokensInLocation("board_2%", 3)) + count($this->tokens->getTokensInLocation("board_2%", 7));
+        $res = ($ship_num1 + $ship_num2) / $ship_num / 2 * 100;
+        //$this->warn("($ship_num1 + $ship_num2) / $ship_num / 2 * 100=$res");
+        return $res;
     }
 
     //////////////////////////////////////////////////////////////////////////////
