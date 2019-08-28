@@ -382,6 +382,7 @@ class BattleShip extends APP_Extended {
         $hgrid = chr($gridparts [1] + 64) . $gridparts [0];
         $this->userAssertTrue(self::_("This location already has been fired at and missed"), $state!=2);
         $this->userAssertTrue(self::_("This location already has been fired at and hit"), $state!=3);
+        $this->userAssertTrue(self::_("This location already has been fired at and sunk"), $state!=7);
         if (! $state) {
             // missed
             $state = 2;
