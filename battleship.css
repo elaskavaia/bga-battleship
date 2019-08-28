@@ -242,6 +242,10 @@ html, .mode_3d #game_play_area_background {
 	border-color: red transparent; 
 }
 
+.discussion_bubble {
+	pointer-events: none;
+}
+
 .playerTurnPlace .fleet .fleetship.enemy {
 	display: none;
 }
