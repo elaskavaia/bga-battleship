@@ -692,6 +692,13 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
             dojo.stopEvent(event);
 
             var ss = id.split('_');
+            var x = ss[2];
+            var y = ss[3];
+            // Bug 26082019 you can't click on row 0 or column 0
+            if (x == 0 || y == 0) {
+                this.showMessage(_('Invalid grid location'), 'error');
+                return;
+            }
             if (this.getStateName() == 'playerTurnPlace') {
                 if (ss[1] != '0') {
                     this.showMessage(_('This is not your board!'), 'error');
@@ -703,21 +710,19 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
                     this.showMessage(_('This is your own board silly!'), 'error');
                     return;
                 }
-         
+                         
                 var gpos = this.gridPosition(id);
                 var grid = this.getX_YfromOffset(gpos);
-                
-
                 if (this.attackGrid == null || this.attackGrid != grid) {
                     this.attackGrid = grid;
                     dojo.query(".selected").removeClass("selected");
-                    dojo.addClass(id,'selected');
+                    dojo.addClass(id, 'selected');
                     this.setDescriptionOnMyTurn(_("Click on grid again to confirm"));
                     return;
                 }
                 this.ajaxAction('playAttack', {
                     grid : grid
-                });
+                });        
             }
 
         },
