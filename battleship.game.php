@@ -410,8 +410,8 @@ class BattleShip extends APP_Extended {
         while ( true ) {
             try {
                 $width = $this->getWidth();
-                $x = rand(1, $width);
-                $y = rand(1, $width);
+                $x = bga_rand(1, $width);
+                $y = bga_rand(1, $width);
                 $this->action_playAttack("${x}_${y}");
                 break;
             } catch ( Exception $e ) {
