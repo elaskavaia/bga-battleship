@@ -83,7 +83,7 @@ class BattleShip extends APP_Extended {
             $color = array_shift($default_colors);
             $values [] = "('" . $player_id . "','$color','" . $player ['player_canal'] . "','" . addslashes($player ['player_name']) . "','" . addslashes($player ['player_avatar']) . "')";
         }
-        $sql .= implode($values, ',');
+        $sql .= implode(',', $values);
         self::DbQuery($sql);
         self::reattributeColorsBasedOnPreferences($players, $gameinfos ['player_colors']);
         self::reloadPlayersBasicInfos();
