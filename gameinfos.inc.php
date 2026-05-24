@@ -61,6 +61,10 @@ $gameinfos = array(
 // Is this game cooperative (all players wins together or loose together)
 'is_coop' => 0,
 
+// Promote PHP warnings/notices to exceptions so silent bugs surface in the
+// runtime instead of being swallowed.
+'exception_on_warning' => true,
+
         // Colors attributed to players
         'player_colors' => array ("ff0000","008000","0000ff", "ffa500","773300" ),
         

@@ -15,6 +15,9 @@
  * In this PHP file, you are going to defines the rules of the game.
  *
  */
+
+use Bga\GameFramework\UserException;
+
 require_once ('modules/tokens.php');
 require_once ('modules/APP_Extended.php');
 
@@ -43,14 +46,14 @@ class BattleShip extends APP_Extended {
         ));
         /*
          * Board data:
-         * key: "fleet_${pnum}_fleetship_${size}_{numindex}_${sizeindex}_${vert}" 
-         * location: "board_${pnum}_${x}_{y}" 
+         * key: "fleet_{$pnum}_fleetship_{$size}_{$numindex}_{$sizeindex}_{$vert}"
+         * location: "board_{$pnum}_{$x}_{$y}"
          * state: 0/1/2/3
          *     where state 1 - ship there, 3 - hit and ship, 7 - hit and ship sunk
-         *     ${vert} v or h, v - vertical placement, h - horizontal
+         *     {$vert} v or h, v - vertical placement, h - horizontal
          * or:
-         * key: "shot_${pnum}_${x}_{y}" 
-         * location: "board_${pnum}_${x}_{y}"
+         * key: "shot_{$pnum}_{$x}_{$y}"
+         * location: "board_{$pnum}_{$x}_{$y}"
          * state: 2 - hit an miss  
          * 
          */
@@ -158,7 +161,7 @@ class BattleShip extends APP_Extended {
             $location = $info['location'];
             $parts = explode('_', $key);
             if ($parts [0] === 'fleet') {
-                //  $shiptoken = "fleet_${pos}_fleetship_${size}_${num}_${i}_${vert}";
+                //  $shiptoken = "fleet_{$pos}_fleetship_{$size}_{$num}_{$i}_{$vert}";
                 list ( $fl, $xpos, $fls, $size, $num, $j, $vert ) = $parts;
                 if (! $reveal) {
                     if ($state == 1  && $pos != $xpos) {
@@ -173,8 +176,8 @@ class BattleShip extends APP_Extended {
                         }
                     }
                     if (! $hide) {
-                        $ship = "fleet_${xpos}_fleetship_${size}_${num}";
-                        $loc = $info ['location'] . "_${vert}";
+                        $ship = "fleet_{$xpos}_fleetship_{$size}_{$num}";
+                        $loc = $info ['location'] . "_{$vert}";
                         $fleetall [$ship] = array ('location' => $loc,'state' => $state,'key' => $ship );
                     }
                 }
@@ -232,14 +235,14 @@ class BattleShip extends APP_Extended {
         // check if all ships of this player is destroyed
         //$ship_num = self::getGameStateValue('ship_num');
         $pos = $this->getPlayerPosition($next_player_id);
-        $ship_num = count($this->tokens->getTokensInLocation("board_${pos}%", 1));
+        $ship_num = count($this->tokens->getTokensInLocation("board_{$pos}%", 1));
         return $ship_num == 0;
     }
 
     function isShipSunk($shiptoken) {
-        //  $shiptoken = "fleet_${pos}_fleetship_${size}_${num}_${i}_${vert}";
+        //  $shiptoken = "fleet_{$pos}_fleetship_{$size}_{$num}_{$i}_{$vert}";
         list ( $fl, $pos, $fls, $size, $num, $j, $vert ) = explode('_', $shiptoken);
-        $starttoken = "fleet_${pos}_fleetship_${size}_${num}_1_${vert}";
+        $starttoken = "fleet_{$pos}_fleetship_{$size}_{$num}_1_{$vert}";
         $startnode = $this->tokens->getTokenInfo($starttoken);
         $location = $startnode ['location'];
         $dx = $vert === 'v' ? 0 : 1;
@@ -247,8 +250,8 @@ class BattleShip extends APP_Extended {
         list ( $board, $pos, $x, $y ) = explode('_', $location);
         $tokens = array ();
         for ($i = 1; $i <= $size; $i ++) {
-            $shiptoken_i = "fleet_${pos}_fleetship_${size}_${num}_${i}_${vert}";
-            $location = "board_${pos}_${x}_${y}";
+            $shiptoken_i = "fleet_{$pos}_fleetship_{$size}_{$num}_{$i}_{$vert}";
+            $location = "board_{$pos}_{$x}_{$y}";
             $x += $dx;
             $y += $dy;
             $state_i = $this->tokens->getTokenState($shiptoken_i);
@@ -262,7 +265,7 @@ class BattleShip extends APP_Extended {
         foreach ( $tokens as $token_key => $location) {
             $this->tokens->setTokenState($token_key, $state);
             list ( $board, $pos, $x, $y ) = explode('_', $location);
-            $this->notifyWithName('playAttack', '', array ('grid' => "${x}_${y}",'state' => $state, 'ship'=>$token_key ));
+            $this->notifyWithName('playAttack', '', array ('grid' => "{$x}_{$y}",'state' => $state, 'ship'=>$token_key ));
         }
         return true;
     }
@@ -334,7 +337,7 @@ class BattleShip extends APP_Extended {
             $x = $coords [2];
             $y = $coords [3];
             $ship = $parts [0];
-            $dpos = "board_${pos}_${x}_${y}";
+            $dpos = "board_{$pos}_{$x}_{$y}";
             $this->tokens->setTokenState($dpos, 1);
         
             $vert= $coords[4];
@@ -344,8 +347,8 @@ class BattleShip extends APP_Extended {
             $shipparts = explode('_', $ship);
             $size = $shipparts[1];
             for ($i=1;$i<=$size;$i++) {
-                $shiptoken = "fleet_${pos}_${ship}_${i}_${vert}";
-                $location = "board_${pos}_${x}_${y}";
+                $shiptoken = "fleet_{$pos}_{$ship}_{$i}_{$vert}";
+                $location = "board_{$pos}_{$x}_{$y}";
                 $x+=$dx;
                 $y+=$dy;
                 $this->tokens->createToken($shiptoken, $location, 1);
@@ -363,12 +366,12 @@ class BattleShip extends APP_Extended {
         $player_id = $this->getActivePlayerId();
         $pos = $this->getPlayerPosition($player_id);
         $opos = 3 - $pos;
-        $location = "board_${opos}_$grid";
+        $location = "board_{$opos}_$grid";
         
         $node = $this->dbGetTokenInfoOnLocation($location);
         if (!$node) {
             $state = 0;
-            $key = "shot_${opos}_${grid}";
+            $key = "shot_{$opos}_{$grid}";
         } else {
             $state = $node ['state'];
             $key = $node['key'];
@@ -410,7 +413,7 @@ class BattleShip extends APP_Extended {
                 $width = $this->getWidth();
                 $x = bga_rand(1, $width);
                 $y = bga_rand(1, $width);
-                $this->action_playAttack("${x}_${y}");
+                $this->action_playAttack("{$x}_{$y}");
                 break;
             } catch ( BattleShipAlreadyFiredException $e ) {
                 continue;
@@ -526,4 +529,4 @@ class BattleShip extends APP_Extended {
 // Thrown by action_playAttack when the target cell has already been fired at.
 // The bot catches this specifically so unexpected exceptions surface instead
 // of locking the game in an infinite retry loop.
-class BattleShipAlreadyFiredException extends BgaUserException {}
+class BattleShipAlreadyFiredException extends UserException {}

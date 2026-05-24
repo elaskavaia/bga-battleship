@@ -36,4 +36,4 @@ BGA Studio modernization warnings from [misc/warnigs.html](misc/warnigs.html). G
 
 ## Config
 
-- [ ] Set `exception_on_warning = true` in [gameinfos.inc.php](gameinfos.inc.php) to surface PHP warnings during execution
+- [x] Set `exception_on_warning = true` in [gameinfos.inc.php](gameinfos.inc.php) to surface PHP warnings during execution

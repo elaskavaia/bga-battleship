@@ -36,14 +36,14 @@ final class ActionAttackTest extends TestCase {
 
     public function testRefiringAtMissThrowsUserException() {
         $this->game->action_playAttack('1_1'); // miss
-        $this->expectException(BgaUserException::class);
+        $this->expectException(\Bga\GameFramework\UserException::class);
         $this->game->action_playAttack('1_1');
     }
 
     public function testRefiringAtHitThrowsUserException() {
         $this->game->placeShip(2, 2, 1, 3, 4, 'h');
         $this->game->action_playAttack('3_4'); // hits, leaves state=3
-        $this->expectException(BgaUserException::class);
+        $this->expectException(\Bga\GameFramework\UserException::class);
         $this->game->action_playAttack('3_4');
     }
 
