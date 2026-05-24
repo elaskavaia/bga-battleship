@@ -398,7 +398,7 @@ class BattleShip extends APP_Extended {
                 $message = clienttranslate('${player_name} fired at ${pos} and hit!');
             }
             $this->notifyWithName('playAttack', $message, array ('pos' => $hgrid,'grid' => $grid,'state' => $state ));
-            $this->dbIncScoreValueAndNotify($player_id, 1, '');
+            $this->playerScore->inc((int)$player_id, 1);
             $this->incStat(1, 'battle_player_score_total', $player_id);
         }
         $this->gamestate->nextState('next');

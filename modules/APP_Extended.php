@@ -177,25 +177,6 @@ abstract class APP_Extended extends \Bga\GameFramework\Table {
         $this->gamestate->changeActivePlayer($next_player_id);
     }
     
-    // ------ DB ----------
-    
-    function dbGetScoreValue($player_id) {
-        return $this->getUniqueValueFromDB("SELECT player_score FROM player WHERE player_id='$player_id'");
-    }
-    
-    function dbSetScoreValue($player_id, $count) {
-        $this->DbQuery("UPDATE player SET player_score='$count' WHERE player_id='$player_id'");
-    }
-    
-    function dbIncScoreValueAndNotify($player_id, $inc, $notif = '') {
-        $count = $this->dbGetScoreValue($player_id);
-        if ($inc != 0) {
-            $count += $inc;
-            $this->dbSetScoreValue($player_id, $count);
-        }
-        $this->notifyWithName("score", $notif, array ('player_score' => $count,'inc' => $inc ), $player_id);
-    }
-    
 }
 
 

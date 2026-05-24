@@ -44,6 +44,9 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
             this.WIDTH = gamedatas['width'];
             this.shipToGrid = {};
 
+            // Render the board scaffolding (previously in battleship.view.php / .tpl).
+            this.bga.gameArea.getElement().innerHTML = this.buildGameArea(gamedatas);
+
             if (this.isSpectator) {
                 this.player_color = 'ffffff';
                 this.player_no = 1;
@@ -72,7 +75,80 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
 
             console.log("Ending game setup");
         },
-        
+
+        // Build the main game area HTML (board grids + fleet panel).
+        // Replaces the legacy battleship.view.php / battleship_battleship.tpl.
+        buildGameArea : function(gamedatas) {
+            const width = gamedatas.width;
+            const fleetconfig = gamedatas.fleetconfig;
+            const letters = ['', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+
+            // Two grids: 0 = own, 1 = enemy. Cell widths match the legacy view.
+            const buildGrid = (a) => {
+                const cellW = (a === 1) ? 40 : 26;
+                const caption = (a === 0) ? _("YOUR SHIPS") : _("ENEMY SHIPS");
+                let cells = '';
+                for (let row = 0; row <= width; row++) {
+                    for (let col = 0; col <= width; col++) {
+                        const cls = this._cellClass(row, col);
+                        let content = '';
+                        if (row === 0 && col > 0) content = col;
+                        else if (col === 0 && row > 0) content = letters[row];
+                        cells += `<div id="grid_${a}_${col}_${row}" class="${cls} table-cell gridPlacement" style="top: ${row * cellW}px; left: ${col * cellW}px;">${content}</div>`;
+                    }
+                }
+                return `
+                    <div class="grid_${a} grid">
+                        <div id="grid_${a}_ships_title" class="board_title grid_${a}_ships_title caption">${caption}</div>
+                        <div class="grid-body">${cells}</div>
+                    </div>`;
+            };
+
+            // Fleet panel — one row per ship in the configured fleet.
+            let fleetRows = '';
+            for (const size in fleetconfig.nums) {
+                for (let n = 1; n <= fleetconfig.nums[size]; n++) {
+                    const id = `fleetship_${size}_${n}`;
+                    const clazz = `fleetship_${size}`;
+                    const name = fleetconfig.name[size * 10 + n];
+                    fleetRows += `
+                        <div class="fleet-row">
+                            <div class="fleetship_name">${name}</div>
+                            <div id="slot_${id}" class="fleet-slot">
+                                <div id="${id}" class="fleetship ${id} ${clazz} own"></div>
+                                <div id="o${id}" class="fleetship ${id} ${clazz} enemy"></div>
+                            </div>
+                        </div>`;
+                }
+            }
+
+            return `
+                <div id="board" class="board">
+                    <div class="background-grids">
+                        ${buildGrid(0)}
+                        ${buildGrid(1)}
+                        <div class="fleet-wrap">
+                            <div id="fleet_title" class="board_title ships_title caption">${_("YOUR FLEET")}</div>
+                            <div id="fleet" class="fleet">${fleetRows}</div>
+                        </div>
+                    </div>
+                </div>`;
+        },
+
+        // Mirrors view.php::getClass — note the inside-row/col checks use 10
+        // literally (legacy behavior; the game only supports width=10).
+        _cellClass : function(row, col) {
+            if (col === 0 && row === 0) return 'first-cell';
+            if (row === 0 && col > 0) return 'cell-number';
+            if (col === 0 && row > 0) return 'cell-letter';
+            var cls = '';
+            if (row === 1) cls += 'cell-first-inside-row';
+            if (col === 1) cls += ' cell-first-inside-col';
+            if (row === 10) cls += ' cell-last-inside-row';
+            if (col === 10) cls += ' cell-last-inside-col';
+            return cls;
+        },
+
         setupBoard: function(gamedatas) {
             this.gridToFleet = [];
             this.shipToGrid = {};
@@ -733,7 +809,6 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
 
             // Example 1: standard notification handling
             dojo.subscribe('playAttack', this, "notif_playAttack");
-            dojo.subscribe('score', this, "notif_score");
             dojo.subscribe('revealShips', this, "notif_revealShips");
             // Example 2: standard notification handling + tell the user interface to wait
             // during 3 seconds after calling the method in order to let the players
@@ -809,10 +884,6 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
             if (notif.log && message) this.showBubble(loc, message, 0, 700, clazz);
 
             // arguments specified during you "notifyAllPlayers" / "notifyPlayer" PHP call // TODO: play the card in the user interface.
-        },
-
-        notif_score : function(notif) {
-            this.bga.playerPanels.getScoreCounter(notif.args.player_id).setValue(notif.args.player_score);
         },
 
         changeTokenStateTo : function(token, newState) {

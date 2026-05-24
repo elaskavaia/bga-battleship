@@ -26,8 +26,8 @@ BGA Studio modernization warnings from [misc/warnigs.html](misc/warnigs.html). G
 
 - [x] **W_PHP_mysql_fetch_assoc** — replaced via `$this->game->getObjectFromDB / getCollectionFromDB / getObjectListFromDB / getUniqueValueFromDB`. Also fixed bug: `_` escaped in `LIKE` patterns when `%` present (`getTokensOfTypeInLocation`, `countTokensInLocation`); fixed `pickCardsForLocation` → `pickTokensForLocation` typo
 - [x] **W_PHP_extends_APP_DbObject** — class is now plain `Tokens`; back-reference to game injected via constructor (`new Tokens($this)`)
-- [ ] **W_PHP_player_score** — replace raw `UPDATE player SET player_score=...` and the `score` notification at [modules/APP_Extended.php:188,197](modules/APP_Extended.php#L188) with `$this->bga->playerScore` counter
-- [ ] **W_PHP_view_tpl** — delete [battleship.view.php](battleship.view.php) and [battleship_battleship.tpl](battleship_battleship.tpl); rebuild the grid scaffolding in `setup()` of [battleship.js](battleship.js) via `bga.gameArea.getElement()`
+- [x] **W_PHP_player_score** — `action_playAttack` uses `$this->playerScore->inc((int)$player_id, 1)` (framework PlayerCounter); the 3 helper methods (`dbGetScoreValue`/`dbSetScoreValue`/`dbIncScoreValueAndNotify`) deleted from APP_Extended; custom `score` notification + its JS subscriber removed (framework sends its own update to the player panel)
+- [x] **W_PHP_view_tpl** — view.php + .tpl deleted; HTML scaffolding now built in `buildGameArea()` + `_cellClass()` helper in [battleship.js](battleship.js), injected via `this.bga.gameArea.getElement().innerHTML = ...` at the top of `setup()`
 
 ## JSON migrations
 
