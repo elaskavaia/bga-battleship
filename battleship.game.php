@@ -20,6 +20,10 @@ require_once ('modules/tokens.php');
 require_once ('modules/APP_Extended.php');
 
 class BattleShip extends APP_Extended {
+    protected Tokens $tokens;
+    protected bool $gameinit;
+    protected int $width;
+    protected array $fleetconfig;
 
     function __construct() {
         // Your global variables labels:
@@ -233,7 +237,6 @@ class BattleShip extends APP_Extended {
     function isEndOfGame($next_player_id) {
         if (! $next_player_id)
             return false;
-        $player_id = $this->getActivePlayerId();
         // check if all ships of this player is destroyed
         //$ship_num = self::getGameStateValue('ship_num');
         $pos = $this->getPlayerPosition($next_player_id);
@@ -326,12 +329,12 @@ class BattleShip extends APP_Extended {
         $this->systemAssertTrue("Invalid payload", count($arr) > 0);
         $ship_num = $this->getFleetShipNum();
        // $this->warn("ship num $ship_num");
-        $this->userAssertTrue(self::_("Not enough ships placed"), count($arr) == $ship_num);
+        $this->userAssertTrue(clienttranslate("Not enough ships placed"), count($arr) == $ship_num);
         $shipconfg = $this->getFleetConfig();
          $width = $this->getWidth();
 
         foreach ( $arr as $key ) {
-            $this->userAssertTrue(self::_("Placement error"), $key !== 'x');
+            $this->userAssertTrue(clienttranslate("Placement error"), $key !== 'x');
             $parts = explode('_at_', $key);
             $this->systemAssertTrue("Invalid payload", count($parts) == 2);
             $coords = explode('_', $parts [1]);
@@ -380,9 +383,11 @@ class BattleShip extends APP_Extended {
         }
        
         $hgrid = chr($gridparts [1] + 64) . $gridparts [0];
-        $this->userAssertTrue(self::_("This location already has been fired at and missed"), $state!=2);
-        $this->userAssertTrue(self::_("This location already has been fired at and hit"), $state!=3);
-        $this->userAssertTrue(self::_("This location already has been fired at and sunk"), $state!=7);
+        // Specific exception so the bot can retry on collisions without
+        // swallowing real bugs.
+        if ($state == 2) throw new BattleShipAlreadyFiredException(clienttranslate("This location already has been fired at and missed"));
+        if ($state == 3) throw new BattleShipAlreadyFiredException(clienttranslate("This location already has been fired at and hit"));
+        if ($state == 7) throw new BattleShipAlreadyFiredException(clienttranslate("This location already has been fired at and sunk"));
         if (! $state) {
             // missed
             $state = 2;
@@ -415,10 +420,9 @@ class BattleShip extends APP_Extended {
                 $y = bga_rand(1, $width);
                 $this->action_playAttack("${x}_${y}");
                 break;
-            } catch ( Exception $e ) {
+            } catch ( BattleShipAlreadyFiredException $e ) {
                 continue;
             }
-            
         }
     }
 
@@ -480,8 +484,8 @@ class BattleShip extends APP_Extended {
      * (ex: pass).
      */
     function zombieTurn($state, $active_player) {
-        $this->warn("Zombie turn in $state for $active_player");
         $statename = $state ['name'];
+        $this->warn("Zombie turn in $statename for $active_player");
         if ($state ['type'] == "activeplayer") {
             $this->gamestate->nextState("last");
             return;
@@ -527,3 +531,7 @@ class BattleShip extends APP_Extended {
     }
 }
 
+// Thrown by action_playAttack when the target cell has already been fired at.
+// The bot catches this specifically so unexpected exceptions surface instead
+// of locking the game in an infinite retry loop.
+class BattleShipAlreadyFiredException extends BgaUserException {}

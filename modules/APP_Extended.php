@@ -15,7 +15,9 @@
  *
  */
 abstract class APP_Extended extends Table {
-    
+    protected ?array $players_basic = null;
+    protected ?array $player_colors = null;
+
     function __construct() {
         parent::__construct();
         self::initGameStateLabels(
