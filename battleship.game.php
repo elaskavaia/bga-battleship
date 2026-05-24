@@ -17,6 +17,8 @@
  */
 
 use Bga\GameFramework\UserException;
+use Bga\GameFramework\SystemException;
+use Bga\GameFramework\VisibleSystemException;
 
 require_once ('modules/tokens.php');
 require_once ('modules/APP_Extended.php');
@@ -35,7 +37,7 @@ class BattleShip extends APP_Extended {
         //  the corresponding ID in gameoptions.inc.php.
         // Note: afterwards, you can get/set the global variables with getGameStateValue/setGameStateInitialValue/setGameStateValue
         parent::__construct();
-        self::initGameStateLabels(
+        $this->initGameStateLabels(
                 array (
                         "ship_num" => 10, // number of grid covered by ships
                      
@@ -73,7 +75,7 @@ class BattleShip extends APP_Extended {
         // Set the colors of the players with HTML color code
         // The default below is red/green/blue/orange/brown
         // The number of colors defined here must correspond to the maximum number of players allowed for the gams
-        $gameinfos = self::getGameinfos();
+        $gameinfos = $this->getGameinfos();
         $default_colors = $gameinfos ['player_colors'];
         shuffle($default_colors);
         // Create players
@@ -85,26 +87,26 @@ class BattleShip extends APP_Extended {
             $values [] = "('" . $player_id . "','$color','" . $player ['player_canal'] . "','" . addslashes($player ['player_name']) . "','" . addslashes($player ['player_avatar']) . "')";
         }
         $sql .= implode(',', $values);
-        self::DbQuery($sql);
-        self::reattributeColorsBasedOnPreferences($players, $gameinfos ['player_colors']);
-        self::reloadPlayersBasicInfos();
+        $this->DbQuery($sql);
+        $this->reattributeColorsBasedOnPreferences($players, $gameinfos ['player_colors']);
+        $this->reloadPlayersBasicInfos();
         $this->gameinit = true;
         /**
          * ********** Start the game initialization ****
          */
         // Init global values with their initial values
-        self::setGameStateInitialValue('ship_num', 18);
-        self::setGameStateInitialValue('grid_width', 10); // XXX init from options
+        $this->setGameStateInitialValue('ship_num', 18);
+        $this->setGameStateInitialValue('grid_width', 10); // XXX init from options
         // INIT GAME STATISTIC
         $all_stats = $this->getStatTypes();
         $player_stats = $all_stats ['player'];
         foreach ( $player_stats as $key => $value ) {
-            if (startsWith($key, 'battle')) {
-                $this->initStat('player', $key, 0);
+            if (str_starts_with($key, 'battle')) {
+                $this->playerStats->init($key, 0);
             }
         }
-        $this->initStat('player', 'turns_number', 0);
-        $this->initStat('table', 'turns_number', 0);
+        $this->playerStats->init('turns_number', 0);
+        $this->tableStats->init('turns_number', 0);
         // Setup the initial game situation here
         $this->initTables();
         // activate
@@ -130,11 +132,11 @@ class BattleShip extends APP_Extended {
      */
     protected function getAllDatas() {
         $result = array ();
-        $current_player_id = self::getCurrentPlayerId(); // !! We must only return informations visible by this player !!
+        $current_player_id = $this->getCurrentPlayerId(); // !! We must only return informations visible by this player !!
         // Get information about players
         // Note: you can retrieve some extra field you added for "player" table in "dbmodel.sql" if you need it.
         $sql = "SELECT player_id id, player_score score, player_color color, player_no no FROM player ";
-        $result ['players'] = self::getCollectionFromDb($sql);
+        $result ['players'] = $this->getCollectionFromDb($sql);
         // Gather all information about current game situation (visible by player $current_player_id).
 
 
@@ -151,7 +153,7 @@ class BattleShip extends APP_Extended {
     function getBoardState($current_player_id, $reveal){
         $result = array();
         $board_state = array ();
-        $pos = $this->getPlayerPosition($current_player_id);
+        $pos = $this->getPlayerNoById($current_player_id);
         
         $resall = $this->tokens->getAllTokens();
         $fleetall = array ();
@@ -223,7 +225,7 @@ class BattleShip extends APP_Extended {
             return null; //XXX temp disable the end
         }
         if ($next_player_id == 0) {
-            throw new BgaVisibleSystemException("Played id is 0");
+            throw new VisibleSystemException("Played id is 0");
         }
         $this->setNextActivePlayerCustom($next_player_id);
         return $next_player_id;
@@ -233,8 +235,8 @@ class BattleShip extends APP_Extended {
         if (! $next_player_id)
             return false;
         // check if all ships of this player is destroyed
-        //$ship_num = self::getGameStateValue('ship_num');
-        $pos = $this->getPlayerPosition($next_player_id);
+        //$ship_num = $this->getGameStateValue('ship_num');
+        $pos = $this->getPlayerNoById($next_player_id);
         $ship_num = count($this->tokens->getTokensInLocation("board_{$pos}%", 1));
         return $ship_num == 0;
     }
@@ -317,7 +319,7 @@ class BattleShip extends APP_Extended {
     public function action_playPlace($ships) {
         $this->checkAction('playPlace');
         $player_id = $this->getCurrentPlayerId();
-        $pos = $this->getPlayerPosition($player_id);
+        $pos = $this->getPlayerNoById($player_id);
         // ships in form 
         // fleetship_3_1_at_grid_0_2_3_v fleetship_1_2_at_grid_0_4_7_h 
         $arr = explode(' ', $ships);
@@ -364,7 +366,7 @@ class BattleShip extends APP_Extended {
         $gridparts = explode('_', $grid);
         $this->systemAssertTrue("Invalid payload", count($gridparts) == 2);
         $player_id = $this->getActivePlayerId();
-        $pos = $this->getPlayerPosition($player_id);
+        $pos = $this->getPlayerNoById($player_id);
         $opos = 3 - $pos;
         $location = "board_{$opos}_$grid";
         
@@ -389,7 +391,7 @@ class BattleShip extends APP_Extended {
             $this->tokens->createToken($key, $location, $state);
             $this->notifyWithName('playAttack', clienttranslate('${player_name} fired at ${pos} and missed'), array (
                     'pos' => $hgrid,'grid' => $grid,'state' => $state ));
-            $this->incStat(1, 'battle_player_miss', $player_id);
+            $this->playerStats->inc('battle_player_miss', 1, (int)$player_id);
         } else if ($state == 1) {
             $state = 3;
             $this->tokens->setTokenState($key, $state);
@@ -402,7 +404,7 @@ class BattleShip extends APP_Extended {
             }
             $this->notifyWithName('playAttack', $message, array ('pos' => $hgrid,'grid' => $grid,'state' => $state ));
             $this->playerScore->inc((int)$player_id, 1);
-            $this->incStat(1, 'battle_player_score_total', $player_id);
+            $this->playerStats->inc('battle_player_score_total', 1, (int)$player_id);
         }
         $this->gamestate->nextState('next');
     }
@@ -455,8 +457,8 @@ class BattleShip extends APP_Extended {
     function st_gameTurnNextPlayer() {
         $next_player_id = $this->activeNextPlayerCustom();
         if ($next_player_id == null) {
-            // end of game
-            $board = $this->getBoardState($next_player_id, true);
+            // end of game — reveal from the winner's perspective (the still-active player)
+            $board = $this->getBoardState((int)$this->getActivePlayerId(), true);
             $this->notifyWithName('revealShips', clienttranslate('${player_name} WINS!!! Revealing ships location'), array(
                     'board' => $board
             ));
@@ -489,7 +491,7 @@ class BattleShip extends APP_Extended {
             $this->gamestate->updateMultiactiveOrNextState('last');
             return;
         }
-        throw new feException("Zombie mode not supported at this game state: " . $statename);
+        throw new SystemException("Zombie mode not supported at this game state: " . $statename);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////:
@@ -513,12 +515,12 @@ class BattleShip extends APP_Extended {
         //        if( $from_version <= 1404301345 )
         //        {
         //            $sql = "ALTER TABLE xxxxxxx ....";
-        //            self::DbQuery( $sql );
+        //            $this->DbQuery( $sql );
         //        }
         //        if( $from_version <= 1405061421 )
         //        {
         //            $sql = "CREATE TABLE xxxxxxx ....";
-        //            self::DbQuery( $sql );
+        //            $this->DbQuery( $sql );
         //        }
         //        // Please add your future database scheme changes here
         //

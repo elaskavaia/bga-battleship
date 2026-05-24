@@ -1,5 +1,7 @@
 <?php
 
+use Bga\GameFramework\UserException;
+
 /**
  * This class contains more useful method which is missing from Table class.
  * To use extend this instead instead of Table, i.e
@@ -11,13 +13,11 @@
  *
  */
 abstract class APP_Extended extends \Bga\GameFramework\Table {
-    protected ?array $players_basic = null;
-    protected ?array $player_colors = null;
     protected bool $gameinit;
 
     function __construct() {
         parent::__construct();
-        self::initGameStateLabels(
+        $this->initGameStateLabels(
                 array (
                         "move_nbr" => 6,
                 ));
@@ -32,14 +32,14 @@ abstract class APP_Extended extends \Bga\GameFramework\Table {
      *
      * @param $log string
      *            user side log message, translation is needed, use clienttranslate() when passing string to it
-     * @throws BgaUserException
+     * @throws UserException
      */
-    function userAssertTrue($message, $cond = false, $log = "") {
+    function userAssertTrue(string $message, $cond = false, $log = "") {
         if ($cond)
             return;
             if ($log)
                 $this->warn($message . " " . $log);
-                throw new BgaUserException($message);
+                throw new UserException($message);
     }
     
     /**
@@ -48,7 +48,7 @@ abstract class APP_Extended extends \Bga\GameFramework\Table {
      *
      * @param $log string
      *            server side log message, no translation needed
-     * @throws BgaUserException
+     * @throws UserException
      */
     function systemAssertTrue($log, $cond = false) {
         if ($cond)
@@ -59,7 +59,7 @@ abstract class APP_Extended extends \Bga\GameFramework\Table {
             //$this->dump('bt',$bt);
             $this->error("Internal Error during move $move: $log|");
             //throw new feException($log);
-            throw new BgaUserException(clienttranslate("Internal Error. That should not have happened. Please raise a bug. "));
+            throw new UserException(clienttranslate("Internal Error. That should not have happened. Please raise a bug. "));
     }
     
     // ------ NOTIFICATIONS ----------
@@ -72,7 +72,7 @@ abstract class APP_Extended extends \Bga\GameFramework\Table {
                 $player_id = $this->getActivePlayerId();
                 $args ['player_id'] = $player_id;
                 if ($message) {
-                    $player_name = $this->getPlayerName($player_id);
+                    $player_name = $this->getPlayerNameById($player_id);
                     $args ['player_name'] = $player_name;
                 }
                 if (isset($args ['_private'])) {
@@ -84,113 +84,20 @@ abstract class APP_Extended extends \Bga\GameFramework\Table {
     }
     
     // ------ PLAYERS ----------
-    
-    /**
-     *
-     * @return integer first player in natural player order
-     */
-    function getFirstPlayer(){
-        $table = $this->getNextPlayerTable();
-        return $table[0];
-    }
-    
-    /**
-     *
-     * @return string hex color as in players table for the player with $player_id
-     */
-    function getPlayerColor($player_id) {
-        if (! isset($this->players_basic)) {
-            $this->players_basic = $this->loadPlayersBasicInfos();
-        }
-        if (! isset($this->players_basic [$player_id])) {
-            return 0;
-        }
-        return $this->players_basic [$player_id] ['player_color'];
-    }
-    /**
-     *
-     * @return string player name based on $player_id
-     */
-    function getPlayerName($player_id) {
-        if (! isset($this->players_basic)) {
-            $this->players_basic = $this->loadPlayersBasicInfos();
-        }
-        if (! isset($this->players_basic [$player_id])) {
-            return "unknown";
-        }
-        return $this->players_basic [$player_id] ['player_name'];
-    }
-    
-    /**
-     *
-     * @return integer player id based on hex $color
-     */
-    function getPlayerIdByColor($color) {
-        if (! isset($this->players_basic)) {
-            $this->players_basic = $this->loadPlayersBasicInfos();
-        }
-        if (! isset($this->player_colors)) {
-            $this->player_colors = array ();
-            foreach ( $this->players_basic as $player_id => $info ) {
-                $this->player_colors [$info ['player_color']] = $player_id;
-            }
-        }
-        if (! isset($this->player_colors [$color])) {
-            return 0;
-        }
-        return $this->player_colors [$color];
-    }
-    
-    /**
-     *
-     * @return integer player position (as player_no) from database
-     */
-    function getPlayerPosition($player_id) {
-        if (! isset($this->players_basic)) {
-            $this->players_basic = $this->loadPlayersBasicInfos();
-        }
-        if (! isset($this->players_basic [$player_id])) {
-            return 0;
-        }
-        return $this->players_basic [$player_id] ['player_no'];
-    }
-    
-    /**
-     *
-     * @return integer number of players
-     */
-    public function getNumPlayers() {
-        if (! isset($this->players_basic)) {
-            $this->players_basic = $this->loadPlayersBasicInfos();
-        }
-        return count($this->players_basic);
-    }
-    
+
+
     /**
      *
      * Change activate player, also increasing turns_number stats and giving extra time
      */
     function setNextActivePlayerCustom($next_player_id) {
         $this->giveExtraTime($next_player_id);
-        $this->incStat(1, 'turns_number', $next_player_id);
-        $this->incStat(1, 'turns_number');
+        $this->playerStats->inc('turns_number', 1, (int)$next_player_id);
+        $this->tableStats->inc('turns_number', 1);
         $this->gamestate->changeActivePlayer($next_player_id);
     }
     
 }
 
 
-function startsWith($haystack, $needle) {
-    // search backwards starting from haystack length characters from the end
-    return $needle === "" || strrpos($haystack, $needle, - strlen($haystack)) !== false;
-}
 
-function getPart($haystack, $i) {
-    try {
-        $parts = explode('_', $haystack);
-        return $parts [$i];
-    } catch ( Exception $e ) {
-        $this->dump('err', $e);
-        return '';
-    }
-}

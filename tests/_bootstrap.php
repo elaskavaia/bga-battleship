@@ -8,8 +8,7 @@ if (!defined("APP_GAMEMODULE_PATH")) {
 }
 require_once APP_GAMEMODULE_PATH . "/php/stubs/BgaFrameworkStubs.php";
 
-// Load the helper module — defines top-level helpers `startsWith()` / `getPart()`
-// and the `APP_Extended` base class used by BattleShip.
+// `APP_Extended` base class used by BattleShip.
 require_once __DIR__ . "/../modules/APP_Extended.php";
 
 // Test scaffolding for real game-logic tests.

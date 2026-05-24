@@ -1,6 +1,7 @@
 <?php
 
 use PHPUnit\Framework\TestCase;
+use Bga\GameFramework\UserException;
 
 // Payload format: "fleetship_{size}_{numindex}_at_grid_{x}_{y}_{vert}" tokens,
 // space-separated, count must equal getFleetShipNum().
@@ -37,7 +38,7 @@ final class ActionPlaceTest extends TestCase {
     }
 
     public function testTooFewShipsThrowsUserException() {
-        $this->expectException(BgaUserException::class);
+        $this->expectException(UserException::class);
         $this->game->action_playPlace('fleetship_5_1_at_grid_1_1_v');
     }
 }

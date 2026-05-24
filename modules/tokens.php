@@ -1,5 +1,7 @@
 <?php
 
+use Bga\GameFramework\SystemException;
+
 /*
  * This is a generic class to manage game pieces.
  *
@@ -86,12 +88,12 @@ class Tokens {
                 }
                 $key = $token_info ['key'];
                 if ($key == null)
-                    throw new feException("createTokens: key cannot be null");
+                    throw new SystemException("createTokens: key cannot be null");
                 $key = $this->varsub($key, array_merge($token_info, array ('INDEX' => $i )), true);
                 if ($location == null)
-                    throw new feException("createTokens: location cannot be null (set per token location or location_global");
-                self::checkLocation($location);
-                self::checkKey($key);
+                    throw new SystemException("createTokens: location cannot be null (set per token location or location_global");
+                $this->checkLocation($location);
+                $this->checkKey($key);
                 $values [] = "( '$key', '$location', '$token_state' )";
                 $keys [] = $key;
             }
@@ -103,9 +105,9 @@ class Tokens {
     }
     
     function createToken($key, $location, $token_state = 0) {
-        self::checkLocation($location);
-        self::checkState($token_state);
-        self::checkKey($key);
+        $this->checkLocation($location);
+        $this->checkState($token_state);
+        $this->checkKey($key);
         $values = array();
         $values [] = "( '$key', '$location', '$token_state' )";
         $sql = "INSERT INTO " . $this->table . " (token_key,token_location,token_state)";
@@ -117,7 +119,7 @@ class Tokens {
         if ($iterArr == null)
             $iterArr = array ('' );
         if (! is_array($iterArr))
-            throw new feException("iterArr must be an array");
+            throw new SystemException("iterArr must be an array");
         if (count($iterArr) == 0)
             $iterArr = array ('' );
         $this->game->warn("create tokens $key $location $nbr");
@@ -136,7 +138,7 @@ class Tokens {
 
     // Get max on min state on the specific location
     function getExtremePosition($getMax, $location) {
-        self::checkLocation($location);
+        $this->checkLocation($location);
         $agg = $getMax ? "MAX" : "MIN";
         $sql = "SELECT $agg( token_state ) FROM " . $this->table;
         $sql .= " WHERE token_location='" . addslashes($location) . "' ";
@@ -146,7 +148,7 @@ class Tokens {
 
     // Shuffle token of a specified location, result of the operation will changes state of the token to be a position after shuffling
     function shuffle($location) {
-        self::checkLocation($location);
+        $this->checkLocation($location);
         $token_keys = $this->game->getObjectListFromDB("SELECT token_key FROM " . $this->table . " WHERE token_location='$location'", true);
         shuffle($token_keys);
         $n = 0;
@@ -159,7 +161,7 @@ class Tokens {
     // Pick the first "$nbr" cards on top of specified deck and place it in target location
     // Return cards infos or void array if no card in the specified location
     function pickTokensForLocation($nbr, $from_location, $to_location, $state = 0, $no_deck_reform = false) {
-        $tokens = self::getTokensOnTop($nbr, $from_location);
+        $tokens = $this->getTokensOnTop($nbr, $from_location);
         $tokens_ids = array ();
         foreach ( $tokens as $i => $card ) {
             $tokens_ids [] = $card ['key'];
@@ -172,8 +174,8 @@ class Tokens {
         if (isset($this->autoreshuffle_custom [$from_location]) && count($tokens) < $nbr && $this->autoreshuffle && ! $no_deck_reform) {
             // No more cards in deck & reshuffle is active => form another deck
             $nbr_token_missing = $nbr - count($tokens);
-            self::reformDeckFromDiscard($from_location);
-            $newcards = self::pickTokensForLocation($nbr_token_missing, $from_location, $to_location, $state, true); // Note: block anothr deck reform
+            $this->reformDeckFromDiscard($from_location);
+            $newcards = $this->pickTokensForLocation($nbr_token_missing, $from_location, $to_location, $state, true); // Note: block anothr deck reform
             foreach ( $newcards as $card ) {
                 $tokens [] = $card;
             }
@@ -195,8 +197,8 @@ class Tokens {
      * Return "$nbr" tokens on top of this location, top defined as item with higher state value
      */
     function getTokensOnTop($nbr, $location) {
-        self::checkLocation($location);
-        self::checkPosInt($nbr);
+        $this->checkLocation($location);
+        $this->checkPosInt($nbr);
         $sql = $this->getSelectQuery();
         $sql .= " WHERE token_location='$location'";
         $sql .= " ORDER BY token_state DESC";
@@ -205,14 +207,14 @@ class Tokens {
     }
 
     function reformDeckFromDiscard($from_location) {
-        self::checkLocation($from_location);
+        $this->checkLocation($from_location);
         if (isset($this->autoreshuffle_custom [$from_location]))
             $discard_location = $this->autoreshuffle_custom [$from_location];
         else
-            throw new feException("reformDeckFromDiscard: Unknown discard location for $from_location !");
-        self::checkLocation($discard_location);
-        self::moveAllTokensInLocation($discard_location, $from_location);
-        self::shuffle($from_location);
+            throw new SystemException("reformDeckFromDiscard: Unknown discard location for $from_location !");
+        $this->checkLocation($discard_location);
+        $this->moveAllTokensInLocation($discard_location, $from_location);
+        $this->shuffle($from_location);
         if ($this->autoreshuffle_trigger) {
             $obj = $this->autoreshuffle_trigger ['obj'];
             $method = $this->autoreshuffle_trigger ['method'];
@@ -222,8 +224,8 @@ class Tokens {
     
     // Set token state
     function setTokenState($token_key, $state) {
-        self::checkState($state);
-        self::checkKey($token_key);
+        $this->checkState($state);
+        $this->checkKey($token_key);
         $sql = "UPDATE " . $this->table;
         $sql .= " SET token_state='$state'";
         $sql .= " WHERE token_key='$token_key'";
@@ -233,9 +235,9 @@ class Tokens {
 
     // Move a card to specific location
     function moveToken($token_key, $location, $state = 0) {
-        self::checkLocation($location);
-        self::checkState($state);
-        self::checkKey($token_key);
+        $this->checkLocation($location);
+        $this->checkState($state);
+        $this->checkKey($token_key);
         $sql = "UPDATE " . $this->table;
         $sql .= " SET token_location='$location', token_state='$state'";
         $sql .= " WHERE token_key='$token_key'";
@@ -244,9 +246,9 @@ class Tokens {
 
     // Move cards to specific location
     function moveTokens($tokens, $location, $state = 0) {
-        self::checkLocation($location);
-        self::checkState($state);
-        self::checkTokenKeyArray($tokens);
+        $this->checkLocation($location);
+        $this->checkState($state);
+        $this->checkTokenKeyArray($tokens);
         $sql = "UPDATE " . $this->table;
         $sql .= " SET token_location='$location', token_state='$state'";
         $sql .= " WHERE token_key IN ('" . implode("','", $tokens) . "')";
@@ -256,22 +258,22 @@ class Tokens {
     // Move a card to a specific location where card are ordered. If location_arg place is already taken, increment
     // all tokens after location_arg in order to insert new card at this precise location
     function insertToken($token_key, $location, $state = 0) {
-        self::checkLocation($location);
-        self::checkState($state);
+        $this->checkLocation($location);
+        $this->checkState($state);
         $sql = "UPDATE " . $this->table;
         $sql .= " SET token_state=token_state+1";
         $sql .= " WHERE token_location='$location' ";
         $sql .= " AND token_state>=$state";
         $this->game->DbQuery($sql);
-        self::moveToken($token_key, $location, $state);
+        $this->moveToken($token_key, $location, $state);
     }
 
     function insertTokenOnExtremePosition($token_key, $location, $bOnTop) {
-        $extreme_pos = self::getExtremePosition($bOnTop, $location);
+        $extreme_pos = $this->getExtremePosition($bOnTop, $location);
         if ($bOnTop)
-            self::insertToken($token_key, $location, $extreme_pos + 1);
+            $this->insertToken($token_key, $location, $extreme_pos + 1);
         else
-            self::insertToken($token_key, $location, $extreme_pos - 1);
+            $this->insertToken($token_key, $location, $extreme_pos - 1);
     }
 
     // Move all tokens from a location to another
@@ -279,8 +281,8 @@ class Tokens {
     // if "from_location" and "from_state" are null: move ALL cards to specific location
     function moveAllTokensInLocation($from_location, $to_location, $from_state = null, $to_state = 0) {
         if ($from_location != null)
-            self::checkLocation($from_location);
-        self::checkLocation($to_location);
+            $this->checkLocation($from_location);
+        $this->checkLocation($to_location);
         $sql = "UPDATE " . $this->table . " ";
         $sql .= "SET token_location='$to_location', token_state='$to_state' ";
         if ($from_location !== null) {
@@ -295,8 +297,8 @@ class Tokens {
      * Move all tokens from a location to another location arg stays with the same value
      */
     function moveAllTokensInLocationKeepOrder($from_location, $to_location) {
-        self::checkLocation($from_location);
-        self::checkLocation($to_location);
+        $this->checkLocation($from_location);
+        $this->checkLocation($to_location);
         $sql = "UPDATE " . $this->table;
         $sql .= " SET token_location='$to_location'";
         $sql .= " WHERE token_location='$from_location'";
@@ -337,11 +339,11 @@ class Tokens {
                 // so e.g. "shot_2%" doesn't also match "shotX2..."
                 $type = preg_replace("/_/", "\\_", $type);
             }
-            self::checkType($type);
+            $this->checkType($type);
             $sql .= " AND token_key LIKE '$type'";
         }
         if ($location !== null) {
-            self::checkLocation($location, true);
+            $this->checkLocation($location, true);
             $like = "LIKE";
             if (strpos($location, "%") === false) {
                 $like = "=";
@@ -351,7 +353,7 @@ class Tokens {
             $sql .= " AND token_location $like '$location' ";
         }
         if ($state !== null) {
-            self::checkState($state, true);
+            $this->checkState($state, true);
             $sql .= " AND token_state = '$state'";
         }
         if ($order_by !== null) {
@@ -387,7 +389,7 @@ class Tokens {
      * Get specific token info
      */
     function getTokenInfo($token_key) {
-        self::checkKey($token_key);
+        $this->checkKey($token_key);
         $sql = $this->getSelectQuery();
         $sql .= " WHERE token_key='$token_key' ";
         return $this->game->getObjectFromDB($sql);
@@ -397,7 +399,7 @@ class Tokens {
      * Get specific tokens info
      */
     function getTokensInfo($tokens_array) {
-        self::checkTokenKeyArray($tokens_array);
+        $this->checkTokenKeyArray($tokens_array);
         if (count($tokens_array) == 0)
             return array ();
         $sql = $this->getSelectQuery();
@@ -407,14 +409,14 @@ class Tokens {
             $this->game->error("getTokens: some cards have not been found:");
             $this->game->error("requested: " . implode(",", $tokens_array));
             $this->game->error("received: " . implode(",", array_keys($result)));
-            throw new feException("getTokens: Some cards have not been found !");
+            throw new SystemException("getTokens: Some cards have not been found !");
         }
         return $result;
     }
 
     function countTokensInLocation($location, $state = null) {
-        self::checkLocation($location, true);
-        self::checkState($state, true);
+        $this->checkLocation($location, true);
+        $this->checkState($state, true);
         $like = "LIKE";
         if (strpos($location, "%") === false) {
             $like = "=";
@@ -437,7 +439,7 @@ class Tokens {
 
     // Return an array "state" => number of tokens (for this location)
     function countTokensByState($location) {
-        self::checkLocation($location);
+        $this->checkLocation($location);
         $sql = "SELECT token_state, COUNT( token_key ) cnt FROM " . $this->table . " ";
         $sql .= "WHERE token_location='$location' ";
         $sql .= "GROUP BY token_state ";
@@ -446,7 +448,7 @@ class Tokens {
 
     function varsub($line, $keymap, $usegindex = false) {
         if ($line === null)
-            throw new feException("varsub: line cannot be null");
+            throw new SystemException("varsub: line cannot be null");
         if (strpos($line, "{") !== false) {
             foreach ( $keymap as $key => $value ) {
                 if (strpos($line, "{$key}") !== false) {
@@ -467,28 +469,28 @@ class Tokens {
 
     final function checkLocation($location, $like = false) {
         if ($location == null)
-            throw new feException("location cannot be null");
+            throw new SystemException("location cannot be null");
         $extra = "";
         if ($like)
             $extra = "%";
         if (preg_match("/^[A-Za-z_0-9{$extra}-]+$/", $location) == 0) {
-            throw new feException("location must be  alphanum and underscore non empty string");
+            throw new SystemException("location must be  alphanum and underscore non empty string");
         }
     }
 
     final function checkState($state, $canBeNull = false) {
         if ($state === null && $canBeNull == false)
-            throw new feException("token state cannot be null");
+            throw new SystemException("token state cannot be null");
         if ($state !== null && preg_match("/^-*[0-9]+$/", $state) == 0) {
-            throw new feException("state must be integer number");
+            throw new SystemException("state must be integer number");
         }
     }
 
     final function checkTokenKeyArray($arr) {
         if ($arr == null)
-            throw new feException("tokens cannot be null");
+            throw new SystemException("tokens cannot be null");
         if (! is_array($arr))
-            throw new feException("tokens must be an array");
+            throw new SystemException("tokens must be an array");
         foreach ( $arr as $key ) {
             $this->checkKey($key);
         }
@@ -496,24 +498,24 @@ class Tokens {
 
     final function checkKey($key, $like = false) {
         if ($key == null)
-            throw new feException("key cannot be null");
+            throw new SystemException("key cannot be null");
         $extra = "";
         if ($like)
             $extra = "%";
         if (preg_match("/^[A-Za-z_0-9{$extra}]+$/", $key) == 0) {
-            throw new feException("key must be alphanum and underscore non empty string '$key'");
+            throw new SystemException("key must be alphanum and underscore non empty string '$key'");
         }
     }
 
     final function checkType($key) {
         if ($key == null)
-            throw new feException("type cannot be null");
+            throw new SystemException("type cannot be null");
         $this->checkKey($key, true);
     }
 
     final function checkPosInt($key) {
         if ($key && preg_match("/^[0-9]+$/", $key) == 0) {
-            throw new feException("must be integer number");
+            throw new SystemException("must be integer number");
         }
     }
 
@@ -569,7 +571,7 @@ class Tokens {
 
     function commitGlobalIndex($key) {
         if (! array_key_exists($key, $this->g_index)) {
-            throw new feException("global index $key is not defined");
+            throw new SystemException("global index $key is not defined");
         }
         $this->setGlobalIndex($key, $this->g_index [$key]);
         return $this->g_index [$key];

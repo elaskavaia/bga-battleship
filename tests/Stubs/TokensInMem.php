@@ -1,5 +1,7 @@
 <?php
 
+use Bga\GameFramework\SystemException;
+
 require_once __DIR__ . '/../../modules/tokens.php';
 
 // In-memory drop-in replacement for the Tokens class. Same public API; only the
@@ -14,7 +16,7 @@ class TokensInMem extends Tokens {
         self::checkState($token_state);
         self::checkKey($key);
         if (array_key_exists($key, $this->rows)) {
-            throw new feException("createToken: duplicate key $key");
+            throw new SystemException("createToken: duplicate key $key");
         }
         $this->rows[$key] = ['key' => $key, 'location' => $location, 'state' => (int)$token_state];
     }
