@@ -9,5 +9,20 @@
                 "name": "5-4-3-3-2"
             }
         }
+    },
+    "102": {
+        "name": "Ship Adjacency",
+        "values": {
+            "0": {
+                "name": "Allowed (standard)"
+            },
+            "1": {
+                "name": "Ships cannot touch on sides"
+            },
+            "2": {
+                "name": "Ships cannot touch on sides or corners"
+            }
+        },
+        "default": 0
     }
 }

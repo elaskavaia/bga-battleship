@@ -45,6 +45,7 @@ class BattleShip extends APP_Extended {
                 // game variants
                 "fleet" => 100,
                 "grid_width" => 101,
+                "ship_adjacency" => 102,
                 //      ...
             ]
         );
@@ -142,6 +143,7 @@ class BattleShip extends APP_Extended {
 
         $result['board'] = $this->getBoardState($current_player_id, false);
         $result['fleetconfig'] = $this->getFleetConfig();
+        $result['ship_adjacency'] = (int)$this->getGameStateValue('ship_adjacency');
 
         $result['width'] = $this->getWidth();
         return $result;
@@ -313,7 +315,7 @@ class BattleShip extends APP_Extended {
      * Each time a player is doing some game action, one of the methods below is called.
      * (note: each method below must match an input method in battleship.action.php)
      */
-    public function action_playPlace($ships) {
+    public function action_playPlace(string $ships) {
         $this->checkAction('playPlace');
         $player_id = $this->getCurrentPlayerId();
         $pos = $this->getPlayerNoById($player_id);
@@ -325,7 +327,9 @@ class BattleShip extends APP_Extended {
         // $this->warn("ship num $ship_num");
         $this->userAssertTrue(clienttranslate("Not enough ships placed"), count($arr) == $ship_num);
 
-        foreach ($arr as $key) {
+        $adjacency = (int)$this->getGameStateValue('ship_adjacency');
+        $cellToShip = []; // "x,y" => shipIdx, used to detect cross-ship overlap/adjacency
+        foreach ($arr as $shipIdx => $key) {
             $this->userAssertTrue(clienttranslate("Placement error"), $key !== 'x');
             $parts = explode('_at_', $key);
             $this->systemAssertTrue("Invalid payload", count($parts) == 2);
@@ -344,6 +348,8 @@ class BattleShip extends APP_Extended {
             for ($i = 1; $i <= $size; $i++) {
                 $shiptoken = "fleet_{$pos}_{$ship}_{$i}_{$vert}";
                 $location = "board_{$pos}_{$x}_{$y}";
+                $this->assertCellAvailable($cellToShip, $shipIdx, $x, $y, $adjacency);
+                $cellToShip["$x,$y"] = $shipIdx;
                 $x += $dx;
                 $y += $dy;
                 $this->tokens->createToken($shiptoken, $location, 1);
@@ -351,6 +357,27 @@ class BattleShip extends APP_Extended {
         }
         $this->notifyWithName('playPlace', clienttranslate('${player_name} placed ships'),  [], $player_id);
         $this->gamestate->setPlayerNonMultiactive($player_id, 'next');
+    }
+
+    // adjacency: 0 = no check, 1 = no orthogonal touching, 2 = no orthogonal or diagonal touching.
+    private function assertCellAvailable(array $cellToShip, int $shipIdx, int $x, int $y, int $adjacency): void {
+        if ($adjacency === 0) return;
+        $diagonal = $adjacency === 2;
+        for ($nx = $x - 1; $nx <= $x + 1; $nx++) {
+            for ($ny = $y - 1; $ny <= $y + 1; $ny++) {
+                if (!$diagonal && $nx !== $x && $ny !== $y) continue;
+                $neighbor = $cellToShip["$nx,$ny"] ?? null;
+                if ($neighbor === null || $neighbor === $shipIdx) continue;
+                $this->userAssertTrue(
+                    $nx === $x && $ny === $y
+                        ? clienttranslate('Ships overlap, please re-place')
+                        : ($diagonal
+                            ? clienttranslate('Ships cannot touch (sides or corners), please re-place')
+                            : clienttranslate('Ships cannot touch on the sides, please re-place')),
+                    false
+                );
+            }
+        }
     }
 
     public function action_playAttack(string $grid) {

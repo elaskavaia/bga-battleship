@@ -354,16 +354,28 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
             var vector = this.getShipPosDir(gpos);
             var size = vector.len;
             var f = this.findFreeShip1(size);
-            if (f == null) {
+            var adjBlocked = f != null && this.wouldViolateAdjacency(vector.gpos, vector.len, vector.dir);
+            if (f == null || adjBlocked) {
                 for (var i = 0; i < vector.len; i++) {
                     var spos = vector.gpos + i * vector.dir;
                     this.setShipOnGrid(spos, 'x');
                 }
+                if (adjBlocked) {
+                    var mode = this.gamedatas.ship_adjacency | 0;
+                    this.showMessage(
+                        mode === 2
+                            ? _('Ships cannot touch, not even at the corners. Place this ship further away.')
+                            : _('Ships cannot touch on the sides. Leave at least one empty cell between ships.'),
+                        'error'
+                    );
+                } else {
+                    this.showMessage(_('No ship of this size remains in your fleet.'), 'error');
+                }
                 return;
             }
-           
+
             this.moveShipOnGrid(f,vector.gpos, vector.dirid);
-        }, 
+        },
         
 
 
@@ -430,16 +442,45 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
                     dojo.removeClass(nid, 'preship');
                     if (ship.startsWith('x')) {
                         dojo.addClass(nid, 'error');
-                       
+
                     } else if ($(ship)) {
                         dojo.addClass('slot_'+ship, 'used');
-                       
-                        
+
+
                     } else if (ship == 's') {
                         dojo.addClass(nid, 'preship');
                     }
                 }
             }
+        },
+
+        // True if placing a ship occupying [startGpos .. startGpos+(len-1)*step]
+        // would touch an already-placed ship, per the ship_adjacency option.
+        // Mode 0 = always false. Mode 1 = orthogonal contact. Mode 2 = also corners.
+        wouldViolateAdjacency : function(startGpos, len, step) {
+            var mode = this.gamedatas.ship_adjacency | 0;
+            if (mode === 0) return false;
+            var diagonal = mode === 2;
+            var occupied = {};
+            for (var i = 0; i < len; i++) occupied[startGpos + i * step] = true;
+            for (var j = 0; j < len; j++) {
+                var gpos = startGpos + j * step;
+                var x = gpos % this.WIDTH;
+                var y = Math.floor(gpos / this.WIDTH);
+                for (var dx = -1; dx <= 1; dx++) {
+                    for (var dy = -1; dy <= 1; dy++) {
+                        if (dx === 0 && dy === 0) continue;
+                        if (!diagonal && dx !== 0 && dy !== 0) continue;
+                        var nx = x + dx, ny = y + dy;
+                        if (nx < 0 || nx >= this.WIDTH || ny < 0 || ny >= this.WIDTH) continue;
+                        var npos = ny * this.WIDTH + nx;
+                        if (occupied[npos]) continue; // cell of the ship being placed
+                        var nship = this.gridToFleet[npos];
+                        if (nship && nship.startsWith && nship.startsWith('fleetship')) return true;
+                    }
+                }
+            }
+            return false;
         },
         getShipOnGrid : function(gpos) {
             var mark = this.gridToFleet[gpos];
@@ -781,7 +822,7 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
                 if (dojo.hasClass(node,'ship_v')) dirid='v';
                 choices += " " + ship + "_at_" + grid + "_" + dirid;
             }
-            
+
             console.log("sending " + choices);
             this.bga.actions.performAction('playPlace', { ships: choices.trim() });
         },
