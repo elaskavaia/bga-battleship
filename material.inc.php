@@ -20,8 +20,6 @@
  */
 
 
-
-
 $this->fleetconfig = array (
         1 => array(
              "nums"=> array (5 => 1,4 => 1,3 => 1,2 => 2,1 => 2 ),
