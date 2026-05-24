@@ -5,18 +5,15 @@
  * To use extend this instead instead of Table, i.e
  *
  <code>
- require_once (APP_GAMEMODULE_PATH . 'module/table/table.game.php');
- require_once ('modules/tokens.php');
- require_once ('modules/APP_Extended.php');
- 
  class BattleShip extends APP_Extended {
  }
  </code>
  *
  */
-abstract class APP_Extended extends Table {
+abstract class APP_Extended extends \Bga\GameFramework\Table {
     protected ?array $players_basic = null;
     protected ?array $player_colors = null;
+    protected bool $gameinit;
 
     function __construct() {
         parent::__construct();
@@ -34,7 +31,7 @@ abstract class APP_Extended extends Table {
      * The message should be translated and shown to the user.
      *
      * @param $log string
-     *            user side log message, translation is needed, use self::_() when passing string to it
+     *            user side log message, translation is needed, use clienttranslate() when passing string to it
      * @throws BgaUserException
      */
     function userAssertTrue($message, $cond = false, $log = "") {
@@ -62,7 +59,7 @@ abstract class APP_Extended extends Table {
             //$this->dump('bt',$bt);
             $this->error("Internal Error during move $move: $log|");
             //throw new feException($log);
-            throw new BgaUserException(self::_("Internal Error. That should not have happened. Please raise a bug. "));
+            throw new BgaUserException(clienttranslate("Internal Error. That should not have happened. Please raise a bug. "));
     }
     
     // ------ NOTIFICATIONS ----------

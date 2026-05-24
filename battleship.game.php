@@ -15,13 +15,12 @@
  * In this PHP file, you are going to defines the rules of the game.
  *
  */
-require_once (APP_GAMEMODULE_PATH . 'module/table/table.game.php');
 require_once ('modules/tokens.php');
 require_once ('modules/APP_Extended.php');
 
 class BattleShip extends APP_Extended {
     protected Tokens $tokens;
-    protected bool $gameinit;
+
     protected int $width;
     protected array $fleetconfig;
 
@@ -55,14 +54,9 @@ class BattleShip extends APP_Extended {
          * state: 2 - hit an miss  
          * 
          */
-        $this->tokens = new Tokens();
+        $this->tokens = new Tokens($this);
         $this->gameinit = false;
         $this->width = 0;
-    }
-
-    protected function getGameName() {
-        // Used for translations and stuff. Please do not modify.
-        return "battleship";
     }
 
     /*
@@ -113,9 +107,7 @@ class BattleShip extends APP_Extended {
         // activate
         $this->activeNextPlayer();
         $this->gameinit = false;
-    /**
-     * ********** End of the game initialization ****
-     */
+        return 2; // first state (replaces removed state 1 / gameSetup)
     }
 
     function initTables() {

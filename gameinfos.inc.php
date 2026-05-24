@@ -13,20 +13,12 @@
 $gameinfos = array( 
         // Name of the game in English (will serve as the basis for translation)
         'game_name' => "Battleships Classic",
-// Game designer (or game designers, separated by commas)
-'designer' => 'Unknown',       
-
-// Game artist (or game artists, separated by commas)
-'artist' => '',         
-
-// Year of FIRST publication of this game. Can be negative.
-'year' => 1931,                 
 
 // Game publisher
-'publisher' => '',                     
+'publisher' => '',
 
 // Url of game publisher website
-'publisher_website' => '',   
+'publisher_website' => '',
 
 // Board Game Geek ID of the publisher
 'publisher_bgg_id' => 3320,
@@ -36,7 +28,7 @@ $gameinfos = array(
 
 
 // Players configuration that can be played (ex: 2 to 4 players)
-'players' => array( 2 ),    
+'players' => array( 2 ),
 
 // Suggest players to play with this number of players. Must be null if there is no such advice, or if there is only one possible player configuration.
 'suggest_player_number' => null,
@@ -66,24 +58,9 @@ $gameinfos = array(
 // Example: 'tie_breaker_description' => totranslate( "Number of remaining cards in hand" ),
 'tie_breaker_description' => "",
 
-// Game is "beta". A game MUST set is_beta=1 when published on BGA for the first time, and must remains like this until all bugs are fixed.
-'is_beta' => 1,                     
-
 // Is this game cooperative (all players wins together or loose together)
-'is_coop' => 0, 
+'is_coop' => 0,
 
-
-// Complexity of the game, from 0 (extremely simple) to 5 (extremely complex)
-'complexity' => 1,    
-
-// Luck of the game, from 0 (absolutely no luck in this game) to 5 (totally luck driven)
-'luck' => 3,    
-
-// Strategy of the game, from 0 (no strategy can be setup) to 5 (totally based on strategy)
-'strategy' => 2,    
-
-// Diplomacy of the game, from 0 (no interaction in this game) to 5 (totally based on interaction and discussion between players)
-'diplomacy' => 0,    
         // Colors attributed to players
         'player_colors' => array ("ff0000","008000","0000ff", "ffa500","773300" ),
         
@@ -104,12 +81,4 @@ $gameinfos = array(
                 //  minimum possible value: 740
                 'max' => null ),
 
-// Games categories
-//  You can attribute a maximum of FIVE "tags" for your game.
-//  Each tag has a specific ID (ex: 22 for the category "Prototype", 101 for the tag "Science-fiction theme game")
-//  Please see the "Game meta information" entry in the BGA Studio documentation for a full list of available tags:
-//  http://en.doc.boardgamearena.com/Game_meta-information:_gameinfos.inc.php
-//  IMPORTANT: this list should be ORDERED, with the most important tag first.
-//  IMPORTANT: it is mandatory that the FIRST tag is 1, 2, 3 and 4 (= game category)
-'tags' => array( 2, 10, 23, 30 )
 );

@@ -1,0 +1,26 @@
+{
+    "table": {
+        "turns_number": {
+            "id": 10,
+            "name": "Number of turns",
+            "type": "int"
+        }
+    },
+    "player": {
+        "turns_number": {
+            "id": 10,
+            "name": "Number of turns",
+            "type": "int"
+        },
+        "battle_player_score_total": {
+            "id": 11,
+            "name": "Number of hits",
+            "type": "int"
+        },
+        "battle_player_miss": {
+            "id": 12,
+            "name": "Number of misses",
+            "type": "int"
+        }
+    }
+}

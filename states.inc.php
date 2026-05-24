@@ -51,17 +51,6 @@
 
 $machinestates = array(
 
-    // The initial state. Please do not modify.
-    1 => array(
-        "name" => "gameSetup",
-        "description" => "",
-        "type" => "manager",
-        "action" => "stGameSetup",
-        "transitions" => array( "" => 2 )
-    ),
-    
-    // Note: ID=2 => your first state
-
     2 => array(
     		"name" => "playerTurnPlace",
     		"description" => clienttranslate('Other player must place ships'),
@@ -91,17 +80,6 @@ $machinestates = array(
             "updateGameProgression" => true,
             "transitions" => array( "last" => 99, "next" => 3 )
     ),
-     
-   
-    // Final state.
-    // Please do not modify.
-    99 => array(
-        "name" => "gameEnd",
-        "description" => clienttranslate("End of game"),
-        "type" => "manager",
-        "action" => "stGameEnd",
-        "args" => "argGameEnd"
-    )
 
 );
 

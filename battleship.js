@@ -179,7 +179,7 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
             console.log("bot called " + (this.player_id - 2300662));
 
             setTimeout(dojo.hitch(this, function() {
-                this.ajaxAction('playBot');
+                this.bga.actions.performAction('playBot', {});
             }), 100);
         },
 
@@ -444,41 +444,6 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
             return a + y2 * 10 + x2;
         },
 
-        /** More convenient version of ajaxcall, do not to specify game name, and any of the handlers */
-
-        ajaxAction : function(action, args, func, err) {
-            // console.log("ajax action " + action);
-            if (!args) {
-                args = [];
-            }
-            // console.log(args);
-            delete args.action;
-            args.lock = true;
-            if (typeof func == "undefined" || func == null) {
-                func = function(result) {
-
-                };
-            }
-
-            if (this.on_client_state) {
-                // restore server server if error happened
-                if (typeof err == "undefined") {
-                    var self = this;
-                    err = function(iserr, message) {
-                        if (iserr) {
-                            console.log('restoring server state, error: ' + message);
-                            self.cancelLocalStateEffects();
-                        }
-                    };
-                }
-            }
-            var name = this.game_name;
-            if (this.checkAction(action)) {
-                // args.lock = true;
-                this.ajaxcall("/" + name + "/" + name + "/" + action + ".html", args,// 
-                this, func, err);
-            }
-        },
 
         cancelLocalStateEffects : function() {
             if (this.on_client_state) {
@@ -720,9 +685,7 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
                     this.setDescriptionOnMyTurn(_("Click on grid again to confirm"));
                     return;
                 }
-                this.ajaxAction('playAttack', {
-                    grid : grid
-                });        
+                this.bga.actions.performAction('playAttack', { grid: grid });
             }
 
         },
@@ -744,9 +707,7 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
             }
             
             console.log("sending " + choices);
-            this.ajaxAction('playPlace', {
-                ships : choices.trim()
-            });
+            this.bga.actions.performAction('playPlace', { ships: choices.trim() });
         },
         onCancel : function(event) {
             var id = event.currentTarget.id;
@@ -851,7 +812,7 @@ define([ "dojo", "dojo/_base/declare", "ebg/core/gamegui", "ebg/counter" ], func
         },
 
         notif_score : function(notif) {
-            this.scoreCtrl[notif.args.player_id].setValue(notif.args.player_score);
+            this.bga.playerPanels.getScoreCounter(notif.args.player_id).setValue(notif.args.player_score);
         },
 
         changeTokenStateTo : function(token, newState) {

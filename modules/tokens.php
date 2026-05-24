@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS `token` (
 
  *
  */
-class Tokens extends APP_DbObject {
+class Tokens {
     var $table;
     var $autoreshuffle = false; // If true, a new deck is automatically formed with a reshuffled discard as soon at is needed
     var $autoreshuffle_trigger = null; // Callback to a method called when an autoreshuffle occurs
@@ -25,9 +25,10 @@ class Tokens extends APP_DbObject {
     var $autoreshuffle_custom = array ();
     private $custom_fields;
     private $g_index;
+    public $game; // Back-reference to the Table for DB access (nullable so TokensInMem can skip it)
 
-   
-    function __construct() {
+    function __construct($game) {
+        $this->game = $game;
         $this->table = 'token';
         $this->custom_fields = array ();
         $this->g_index = array ();
@@ -97,7 +98,7 @@ class Tokens extends APP_DbObject {
         }
         $sql = "INSERT INTO " . $this->table . " (token_key,token_location,token_state)";
         $sql .= " VALUES " . implode(",", $values);
-        $this->DbQuery($sql);
+        $this->game->DbQuery($sql);
         return $keys;
     }
     
@@ -109,7 +110,7 @@ class Tokens extends APP_DbObject {
         $values [] = "( '$key', '$location', '$token_state' )";
         $sql = "INSERT INTO " . $this->table . " (token_key,token_location,token_state)";
         $sql .= " VALUES " . implode(",", $values);
-        $this->DbQuery($sql);
+        $this->game->DbQuery($sql);
     }
     
     function createTokensPack($key, $location, $nbr = 1, $nbr_start = 0, $iterArr = null) {
@@ -119,7 +120,7 @@ class Tokens extends APP_DbObject {
             throw new feException("iterArr must be an array");
         if (count($iterArr) == 0)
             $iterArr = array ('' );
-        $this->warn("create tokens $key $location $nbr");
+        $this->game->warn("create tokens $key $location $nbr");
         $tokenSpec = array ('key' => $key,'location' => $location,'nbr' => $nbr,'nbr_start' => $nbr_start );
         $tokens = array ();
         foreach ( $iterArr as $iterKey ) {
@@ -136,28 +137,21 @@ class Tokens extends APP_DbObject {
     // Get max on min state on the specific location
     function getExtremePosition($getMax, $location) {
         self::checkLocation($location);
-        if ($getMax)
-            $sql = "SELECT MAX( token_state ) res ";
-        else
-            $sql = "SELECT MIN( token_state ) res ";
-        $sql .= "FROM " . $this->table;
+        $agg = $getMax ? "MAX" : "MIN";
+        $sql = "SELECT $agg( token_state ) FROM " . $this->table;
         $sql .= " WHERE token_location='" . addslashes($location) . "' ";
-        $dbres = self::DbQuery($sql);
-        $row = mysql_fetch_assoc($dbres);
-        if ($row)
-            return $row ['res'];
-        else
-            return 0;
+        $res = $this->game->getUniqueValueFromDB($sql);
+        return $res === null ? 0 : $res;
     }
 
     // Shuffle token of a specified location, result of the operation will changes state of the token to be a position after shuffling
     function shuffle($location) {
         self::checkLocation($location);
-        $token_keys = self::getObjectListFromDB("SELECT token_key FROM " . $this->table . " WHERE token_location='$location'", true);
+        $token_keys = $this->game->getObjectListFromDB("SELECT token_key FROM " . $this->table . " WHERE token_location='$location'", true);
         shuffle($token_keys);
         $n = 0;
         foreach ( $token_keys as $token_key ) {
-            self::DbQuery("UPDATE " . $this->table . " SET token_state='$n' WHERE token_key='$token_key'");
+            $this->game->DbQuery("UPDATE " . $this->table . " SET token_state='$n' WHERE token_key='$token_key'");
             $n ++;
         }
     }
@@ -174,12 +168,12 @@ class Tokens extends APP_DbObject {
         }
         $sql = "UPDATE " . $this->table . " SET token_location='" . addslashes($to_location) . "', token_state='$state' ";
         $sql .= "WHERE token_key IN ('" . implode("','", $tokens_ids) . "') ";
-        self::DbQuery($sql);
+        $this->game->DbQuery($sql);
         if (isset($this->autoreshuffle_custom [$from_location]) && count($tokens) < $nbr && $this->autoreshuffle && ! $no_deck_reform) {
             // No more cards in deck & reshuffle is active => form another deck
             $nbr_token_missing = $nbr - count($tokens);
             self::reformDeckFromDiscard($from_location);
-            $newcards = self::pickCardsForLocation($nbr_token_missing, $from_location, $to_location, $state, true); // Note: block anothr deck reform
+            $newcards = self::pickTokensForLocation($nbr_token_missing, $from_location, $to_location, $state, true); // Note: block anothr deck reform
             foreach ( $newcards as $card ) {
                 $tokens [] = $card;
             }
@@ -203,16 +197,11 @@ class Tokens extends APP_DbObject {
     function getTokensOnTop($nbr, $location) {
         self::checkLocation($location);
         self::checkPosInt($nbr);
-        $result = array ();
         $sql = $this->getSelectQuery();
         $sql .= " WHERE token_location='$location'";
         $sql .= " ORDER BY token_state DESC";
         $sql .= " LIMIT $nbr";
-        $dbres = self::DbQuery($sql);
-        while ( $row = mysql_fetch_assoc($dbres) ) {
-            $result [] = $row;
-        }
-        return $result;
+        return $this->game->getObjectListFromDB($sql);
     }
 
     function reformDeckFromDiscard($from_location) {
@@ -238,7 +227,7 @@ class Tokens extends APP_DbObject {
         $sql = "UPDATE " . $this->table;
         $sql .= " SET token_state='$state'";
         $sql .= " WHERE token_key='$token_key'";
-        self::DbQuery($sql);
+        $this->game->DbQuery($sql);
     }
     
 
@@ -250,7 +239,7 @@ class Tokens extends APP_DbObject {
         $sql = "UPDATE " . $this->table;
         $sql .= " SET token_location='$location', token_state='$state'";
         $sql .= " WHERE token_key='$token_key'";
-        self::DbQuery($sql);
+        $this->game->DbQuery($sql);
     }
 
     // Move cards to specific location
@@ -261,7 +250,7 @@ class Tokens extends APP_DbObject {
         $sql = "UPDATE " . $this->table;
         $sql .= " SET token_location='$location', token_state='$state'";
         $sql .= " WHERE token_key IN ('" . implode("','", $tokens) . "')";
-        self::DbQuery($sql);
+        $this->game->DbQuery($sql);
     }
 
     // Move a card to a specific location where card are ordered. If location_arg place is already taken, increment
@@ -273,7 +262,7 @@ class Tokens extends APP_DbObject {
         $sql .= " SET token_state=token_state+1";
         $sql .= " WHERE token_location='$location' ";
         $sql .= " AND token_state>=$state";
-        self::DbQuery($sql);
+        $this->game->DbQuery($sql);
         self::moveToken($token_key, $location, $state);
     }
 
@@ -299,7 +288,7 @@ class Tokens extends APP_DbObject {
             if ($from_state !== null)
                 $sql .= "AND token_state='$from_state' ";
         }
-        self::DbQuery($sql);
+        $this->game->DbQuery($sql);
     }
 
     /**
@@ -311,7 +300,7 @@ class Tokens extends APP_DbObject {
         $sql = "UPDATE " . $this->table;
         $sql .= " SET token_location='$to_location'";
         $sql .= " WHERE token_location='$from_location'";
-        self::DbQuery($sql);
+        $this->game->DbQuery($sql);
     }
 
     /**
@@ -343,6 +332,10 @@ class Tokens extends APP_DbObject {
         if ($type !== null) {
             if (strpos($type, "%") === false) {
                 $type .= "%";
+            } else {
+                // Bug fix: `_` is SQL LIKE's single-char wildcard — escape it
+                // so e.g. "shot_2%" doesn't also match "shotX2..."
+                $type = preg_replace("/_/", "\\_", $type);
             }
             self::checkType($type);
             $sql .= " AND token_key LIKE '$type'";
@@ -352,6 +345,8 @@ class Tokens extends APP_DbObject {
             $like = "LIKE";
             if (strpos($location, "%") === false) {
                 $like = "=";
+            } else {
+                $location = preg_replace("/_/", "\\_", $location);
             }
             $sql .= " AND token_location $like '$location' ";
         }
@@ -359,38 +354,20 @@ class Tokens extends APP_DbObject {
             self::checkState($state, true);
             $sql .= " AND token_state = '$state'";
         }
-        if ($order_by !== null)
+        if ($order_by !== null) {
             $sql .= " ORDER BY $order_by";
-        $dbres = self::DbQuery($sql);
-        $result = array ();
-        $i = 0;
-        while ( $row = mysql_fetch_assoc($dbres) ) {
-            if ($order_by !== null) {
-                $result [$i] = $row;
-            } else {
-                $result [$row ['key']] = $row;
-            }
-            $i ++;
+            return $this->game->getObjectListFromDB($sql);
         }
-        return $result;
+        return $this->game->getCollectionFromDB($sql);
     }
 
     function getAllTokens($order_by = null) {
         $sql = $this->getSelectQuery();
-        if ($order_by !== null)
+        if ($order_by !== null) {
             $sql .= " ORDER BY $order_by";
-        $dbres = self::DbQuery($sql);
-        $result = array ();
-        $i = 0;
-        while ( $row = mysql_fetch_assoc($dbres) ) {
-            if ($order_by !== null) {
-                $result [$i] = $row;
-            } else {
-                $result [$row ['key']] = $row;
-            }
-            $i ++;
+            return $this->game->getObjectListFromDB($sql);
         }
-        return $result;
+        return $this->game->getCollectionFromDB($sql);
     }
 
     
@@ -413,8 +390,7 @@ class Tokens extends APP_DbObject {
         self::checkKey($token_key);
         $sql = $this->getSelectQuery();
         $sql .= " WHERE token_key='$token_key' ";
-        $dbres = self::DbQuery($sql);
-        return mysql_fetch_assoc($dbres);
+        return $this->game->getObjectFromDB($sql);
     }
 
     /**
@@ -426,15 +402,11 @@ class Tokens extends APP_DbObject {
             return array ();
         $sql = $this->getSelectQuery();
         $sql .= " WHERE token_key IN ('" . implode("','", $tokens_array) . "') ";
-        $dbres = self::DbQuery($sql);
-        $result = array ();
-        while ( $row = mysql_fetch_assoc($dbres) ) {
-            $result [$row ['key']] = $row;
-        }
+        $result = $this->game->getCollectionFromDB($sql);
         if (count($result) != count($tokens_array)) {
-            self::error("getTokens: some cards have not been found:");
-            self::error("requested: " . implode(",", $tokens_array));
-            self::error("received: " . implode(",", array_keys($result)));
+            $this->game->error("getTokens: some cards have not been found:");
+            $this->game->error("requested: " . implode(",", $tokens_array));
+            $this->game->error("received: " . implode(",", array_keys($result)));
             throw new feException("getTokens: Some cards have not been found !");
         }
         return $result;
@@ -446,41 +418,30 @@ class Tokens extends APP_DbObject {
         $like = "LIKE";
         if (strpos($location, "%") === false) {
             $like = "=";
+        } else {
+            $location = preg_replace("/_/", "\\_", $location);
         }
-        $sql = "SELECT COUNT( token_key ) cnt FROM " . $this->table;
+        $sql = "SELECT COUNT( token_key ) FROM " . $this->table;
         $sql .= " WHERE token_location $like '$location' ";
         if ($state !== null)
             $sql .= "AND token_state='$state' ";
-        $dbres = self::DbQuery($sql);
-        if ($row = mysql_fetch_assoc($dbres))
-            return $row ['cnt'];
-        else
-            return 0;
+        $res = $this->game->getUniqueValueFromDB($sql);
+        return $res === null ? 0 : $res;
     }
 
     // Return an array "location" => number of cards
     function countTokensInLocations() {
-        $result = array ();
         $sql = "SELECT token_location, COUNT( token_key ) cnt FROM " . $this->table . " GROUP BY token_location ";
-        $dbres = self::DbQuery($sql);
-        while ( $row = mysql_fetch_assoc($dbres) ) {
-            $result [$row ['token_location']] = $row ['cnt'];
-        }
-        return $result;
+        return $this->game->getCollectionFromDB($sql, true);
     }
 
     // Return an array "state" => number of tokens (for this location)
     function countTokensByState($location) {
         self::checkLocation($location);
-        $result = array ();
         $sql = "SELECT token_state, COUNT( token_key ) cnt FROM " . $this->table . " ";
         $sql .= "WHERE token_location='$location' ";
         $sql .= "GROUP BY token_state ";
-        $dbres = self::DbQuery($sql);
-        while ( $row = mysql_fetch_assoc($dbres) ) {
-            $result [$row ['token_state']] = $row ['cnt'];
-        }
-        return $result;
+        return $this->game->getCollectionFromDB($sql, true);
     }
 
     function varsub($line, $keymap, $usegindex = false) {
@@ -577,7 +538,7 @@ class Tokens extends APP_DbObject {
             $this->checkPosInt($value);
             $sql = "INSERT INTO " . $this->table . " (token_key,token_location,token_state)";
             $sql .= " VALUES ('$key','$key','$value')";
-            $this->DbQuery($sql);
+            $this->game->DbQuery($sql);
             $this->g_index [$key] = $value;
         } else {
             $this->g_index [$key] = $value;
@@ -589,21 +550,16 @@ class Tokens extends APP_DbObject {
         $sql = "UPDATE " . $this->table;
         $sql .= " SET token_state='$value'";
         $sql .= " WHERE token_key='$key'";
-        self::DbQuery($sql);
+        $this->game->DbQuery($sql);
         $this->g_index [$key] = $value;
         return $value;
     }
 
     function syncGlobalIndex($key) {
         $this->checkKey($key);
-        $sql = "SELECT token_state";
-        $sql .= " FROM " . $this->table;
-        $sql .= " WHERE token_key='$key'";
-        $dbres = self::DbQuery($sql);
-        $row = mysql_fetch_assoc($dbres);
-        if ($row)
-            $value = $row ['token_state'];
-        else {
+        $sql = "SELECT token_state FROM " . $this->table . " WHERE token_key='$key'";
+        $value = $this->game->getUniqueValueFromDB($sql);
+        if ($value === null) {
             unset($this->g_index [$key]);
             $value = $this->initGlobalIndex($key, 1);
         }

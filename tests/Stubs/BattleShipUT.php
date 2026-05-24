@@ -11,7 +11,7 @@ class BattleShipUT extends BattleShip {
         parent::__construct();
         require __DIR__ . '/../../material.inc.php';
         require __DIR__ . '/../../states.inc.php';
-        $this->tokens = new TokensInMem();
+        $this->tokens = new TokensInMem($this);
         // Wire the state machine — `action_*` methods call `nextState('next')`,
         // which the stub validates against the transitions table.
         $this->gamestate->_setStates($machinestates);
