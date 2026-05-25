@@ -1,0 +1,25 @@
+{
+  // See https://go.microsoft.com/fwlink/?LinkId=733558
+  // for the documentation about the tasks.json format
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "unit test php",
+      "type": "shell",
+      "command": "phpunit --display-deprecations --display-warnings --colors=always tests",
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "APP_GAMEMODULE_PATH": "${userHome}/git/bga-sharedcode/misc/",
+          "XDEBUG_CONFIG": "client_port=9003 idekey=VSCODE",
+          "XDEBUG_MODE": "debug,develop"
+        }
+      },
+      "problemMatcher": ["$phpunit"],
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      }
+    }
+  ]
+}

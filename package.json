@@ -1,0 +1,35 @@
+{
+  "name": "bga.battleship",
+  "version": "1.0.0",
+  "description": "Battleship for Board Game Arena",
+  "main": "modules/js/Game.js",
+  "scripts": {
+    "build:ts": "rollup -c",
+    "watch:ts": "rollup -c -w",
+    "build": "npm run build:ts",
+    "lint:php": "find . -path ./node_modules -prune -o -name '*.php' -print | xargs -I{} php -l {} && echo 'All PHP files OK'",
+    "test": "APP_GAMEMODULE_PATH=~/git/bga-sharedcode/misc/ phpunit --display-deprecations --display-warnings",
+    "tests": "npm run test -- --testdox",
+    "tests:cov": "XDEBUG_MODE=coverage APP_GAMEMODULE_PATH=~/git/bga-sharedcode/misc/ phpunit --coverage-text",
+    "jstests": "NODE_OPTIONS='--disable-warning=MODULE_TYPELESS_PACKAGE_JSON' TS_NODE_PROJECT=src/tests/tsconfig.json mocha -r ts-node/register -r src/tests/setup.ts src/tests/**/*.spec.ts",
+    "predeploy": "npm run build && npm run lint:php && npm run tests && npm run jstests"
+  },
+  "author": "Alena Laskavaia",
+  "license": "EPL2.0",
+  "devDependencies": {
+    "@rollup/plugin-typescript": "^12",
+    "@types/chai": "^4",
+    "@types/jsdom": "^28",
+    "@types/mocha": "^10",
+    "@types/node": "^10",
+    "@types/sinon": "^21",
+    "chai": "^4",
+    "jsdom": "^28",
+    "mocha": "^11",
+    "rollup": "^4",
+    "sinon": "^21",
+    "ts-node": "^10",
+    "tslib": "^2",
+    "typescript": "^5"
+  }
+}

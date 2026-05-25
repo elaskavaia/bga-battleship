@@ -4,18 +4,25 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-A classic Battleship implementation for the **Board Game Arena Studio** platform (BGA). It is uploaded to BGA's servers — there is no local build and no package manager. Eclipse PDT project files (`.project`, `.settings/`, `.buildpath`) are checked in; ignore them.
+A classic Battleship implementation for the **Board Game Arena Studio** platform (BGA). It is uploaded to BGA's servers. The PHP files have no local build (`battleship.game.php` etc. are uploaded as-is); the JS client is compiled from TypeScript via Rollup into `modules/js/Game.js` (checked in). Eclipse PDT project files (`.project`, `.settings/`, `.buildpath`) are checked in; ignore them.
 
-This codebase has been modernized for the new BGA framework: no `mysql_fetch_assoc`, no `extends APP_DbObject`, no `extends \Table`, no `.view.php`/`.tpl`, no `ajaxcall`, no `self::_()`. JSON metadata files replace the legacy `gameoptions.inc.php` / `stats.inc.php`. `exception_on_warning` is on. See [TODO.md](TODO.md) for status (currently empty — all warnings cleared).
+This codebase has been modernized for the new BGA framework: no `mysql_fetch_assoc`, no `extends APP_DbObject`, no `extends \Table`, no `.view.php`/`.tpl`, no `ajaxcall`, no `self::_()`, no Dojo / AMD on the client side. JSON metadata files replace the legacy `gameoptions.inc.php` / `stats.inc.php`. `exception_on_warning` is on. See [TODO.md](TODO.md) for status (currently empty — all warnings cleared).
 
 ## Tests
 
-PHPUnit, configured via [phpunit.xml](phpunit.xml). Bootstrap [tests/_bootstrap.php](tests/_bootstrap.php) loads BGA framework stubs from `~/git/bga-sharedcode/misc/php/stubs/BgaFrameworkStubs.php` (override path via `APP_GAMEMODULE_PATH`). No composer, no npm — just:
+Two suites — PHPUnit for server, mocha + chai + jsdom for client. Both wired through npm scripts in [package.json](package.json).
 
-- `phpunit` — run everything
-- `phpunit --testdox` — readable per-test progress
-- `phpunit --filter testFoo tests/SomeTest.php` — run one
-- [runtests.sh](runtests.sh) wraps the common flags
+PHPUnit (configured via [phpunit.xml](phpunit.xml)): bootstrap [tests/_bootstrap.php](tests/_bootstrap.php) loads BGA framework stubs from `~/git/bga-sharedcode/misc/php/stubs/BgaFrameworkStubs.php` (override path via `APP_GAMEMODULE_PATH`).
+
+- `npm run tests` — run the full PHP suite with --testdox
+- `npm run test -- --filter testFoo tests/SomeTest.php` — run one
+- `npm run tests:cov` — coverage report (needs xdebug)
+
+JS tests: mocha specs under [src/tests/](src/tests/) — `setup.ts` boots JSDOM and stubs `$`, `_`, `__`, `gameui`, `ebg`. Run with `npm run jstests`. [src/tests/grid.spec.ts](src/tests/grid.spec.ts) covers the pure helpers in [src/grid.ts](src/grid.ts).
+
+Build the client: `npm run build:ts` (compiles [src/Game.ts](src/Game.ts) → [modules/js/Game.js](modules/js/Game.js) via [rollup.config.mjs](rollup.config.mjs)). `npm run watch:ts` rebuilds on save during development.
+
+`npm run predeploy` chains the whole pre-ship checklist: `build` + `lint:php` + `tests` + `jstests`.
 
 Test infra:
 - [tests/Stubs/TokensInMem.php](tests/Stubs/TokensInMem.php) — in-memory drop-in for `Tokens` (overrides only DB-touching methods; inherits the rest)
@@ -25,7 +32,11 @@ Test infra:
 
 - [battleship.game.php](battleship.game.php) — server-side game logic. `class BattleShip extends APP_Extended`. Defines `BattleShipAlreadyFiredException extends UserException` at the bottom — `action_playBot` catches *only* this so unrelated bugs surface instead of locking the game in a retry loop.
 - [battleship.action.php](battleship.action.php) — thin AJAX dispatcher. Each `playFoo` method validates args and forwards to `$this->game->action_playFoo(...)`.
-- [battleship.js](battleship.js) — client-side Dojo AMD module `bgagame.battleship` extending `ebg.core.gamegui`. `buildGameArea()` + `_cellClass()` build the board HTML at runtime (replaces the deleted `.view.php`/`.tpl`); injected via `this.bga.gameArea.getElement().innerHTML` at the top of `setup()`.
+- [src/Game.ts](src/Game.ts) — client-side ES module entry. `class Game` (no inheritance) takes `Bga` in constructor and registers state classes via `bga.states.register(name, instance)`. `buildGameArea()` builds the board HTML at runtime; injected via `this.bga.gameArea.getElement().innerHTML` at the top of `setup()`. Compiled to [modules/js/Game.js](modules/js/Game.js) — BGA auto-loads it (no `game_main_js` needed in `gameinfos.inc.php`).
+- [src/PlayerTurnPlaceState.ts](src/PlayerTurnPlaceState.ts), [src/PlayerTurnAttackState.ts](src/PlayerTurnAttackState.ts) — per-state classes with `onEnteringState` / `onLeavingState` / `onPlayerActivationChange`. Wire status-bar buttons via `bga.statusBar.addActionButton(label, callback, params?)`.
+- [src/grid.ts](src/grid.ts) — pure grid math (no DOM). `gridId`, `gridPosition`, `gridOffset`, `getXYFromOffset`, `cellClass`, `getStart`, `getShipPosDir`, `wouldViolateAdjacency`, `getIntPart`. Reused by `Game.ts` and unit-tested in [src/tests/grid.spec.ts](src/tests/grid.spec.ts).
+- [src/dom.ts](src/dom.ts), [src/animation.ts](src/animation.ts) — vanilla-DOM helpers (`addClass`, `removeClass`, `slideToObjectRelative`, ...) that replaced the dojo calls during migration.
+- [src/random.ts](src/random.ts) — pure RNG-driven ship-placement helper (`findRandomPlacement`); injectable RNG keeps it unit-testable.
 - [battleship.css](battleship.css) — styles.
 - [states.inc.php](states.inc.php) — finite state machine (see below).
 - [dbmodel.sql](dbmodel.sql) — DB schema. Only one custom table: `token`.
@@ -40,7 +51,7 @@ Test infra:
 `setupNewGame returns 2 → playerTurnPlace(2, multiactive) → gameTurnNextPlayer(4, game) ↔ playerTurnAttack(3, activeplayer) → 99 (framework-provided end)`
 
 - States `1` (gameSetup) and `99` (gameEnd) were removed from `$machinestates` — the new framework provides them implicitly. `setupNewGame()` returns the id of the first real state (`2`).
-- State `name` is what JS sees from `this.getStateName()`.
+- State `name` is the key used in `bga.states.register(name, instance)` on the JS side.
 - `possibleactions` gates `checkAction` on both PHP and JS sides.
 - `args` callback shape: `arg_<stateName>()` in `battleship.game.php`.
 
@@ -63,8 +74,8 @@ Because identifiers are parsed by `explode('_', ...)` / `split('_')`, **never pu
 2. Add a handler in [battleship.action.php](battleship.action.php) — extract args with `self::getArg(...)`, call `$this->game->action_<name>(...)`.
 3. Implement `action_<name>` in [battleship.game.php](battleship.game.php). Start with `$this->checkAction('<name>')`. Validate with `userAssertTrue` (user-facing message) or `systemAssertTrue` (impossible without tampering). End by transitioning (`$this->gamestate->nextState(...)` or `setPlayerNonMultiactive`).
 4. Notify via `$this->notifyWithName($type, $msg, $args)` from [modules/APP_Extended.php](modules/APP_Extended.php) (auto-injects `player_id` / `player_name`; honors `$args['_private']` to send only to the active player).
-5. In [battleship.js](battleship.js) `setupNotifications`, subscribe with `dojo.subscribe('<type>', this, 'notif_<type>')` and optionally `this.notifqueue.setSynchronous('<type>', ms)` to delay the next notification.
-6. Client-side, fire the action with `this.bga.actions.performAction('<name>', { ...args })` (the legacy `ajaxcall` wrapper is gone).
+5. In [src/Game.ts](src/Game.ts), add a `notif_<type>(args: any)` method — it's auto-subscribed by `this.bga.notifications.setupPromiseNotifications()` in `setup()`. Return a `Promise` (or `await`) if you want to pace the notification queue (replacement for the legacy `notifqueue.setSynchronous`).
+6. Client-side, fire the action with `this.bga.actions.performAction('<name>', { ...args })`. Returns a `Promise<any>`.
 
 ## Conventions / gotchas
 
