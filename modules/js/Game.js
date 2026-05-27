@@ -365,7 +365,7 @@ class Game {
         }
         else {
             this.player_color = gamedatas.players[this.player_id].color;
-            this.player_no = gamedatas.players[this.player_id].no;
+            this.player_no = Number(gamedatas.players[this.player_id].no);
             this.player_id_as = this.player_id;
         }
         this.opponent_no = 3 - this.player_no;
