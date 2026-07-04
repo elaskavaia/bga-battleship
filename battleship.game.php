@@ -137,7 +137,7 @@ class BattleShip extends APP_Extended {
         $current_player_id = $this->getCurrentPlayerId(); // !! We must only return informations visible by this player !!
         // Get information about players
         // Note: you can retrieve some extra field you added for "player" table in "dbmodel.sql" if you need it.
-        $sql = "SELECT player_id id, player_score score, player_color color, player_no no FROM player ";
+        $sql = "SELECT player_id id, player_name name, player_score score, player_color color, player_no no FROM player ";
         $result['players'] = $this->getCollectionFromDb($sql);
         // Gather all information about current game situation (visible by player $current_player_id).
 
@@ -152,7 +152,9 @@ class BattleShip extends APP_Extended {
     function getBoardState($current_player_id, $reveal) {
         $result = [];
         $board_state =  [];
-        $pos = $this->getPlayerNoById($current_player_id);
+        // Spectators are not players at the table, so getPlayerNoById would throw.
+        // Give them a pos that matches neither board (1/2) so all ships stay hidden.
+        $pos = $this->isSpectator() ? 0 : $this->getPlayerNoById($current_player_id);
 
         $resall = $this->tokens->getAllTokens();
         $fleetall =  [];

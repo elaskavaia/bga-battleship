@@ -119,9 +119,18 @@ export class Game {
       return cls;
     };
 
+    // Spectators have no "you", so label boards with the players' names instead.
+    // A spectator views player_no 1 on grid 0 and player_no 2 on grid 1 (see setup()).
+    const spectating = this.isSpectator();
+    const nameByNo = (no: number): string => {
+      const player = this.bga.players.getPlayerByNo(no);
+      return player ? this.bga.players.getFormattedPlayerName((player as any).id) : "";
+    };
+
     const buildGrid = (a: 0 | 1) => {
       const cellW = a === 1 ? 40 : 26;
-      const caption = a === 0 ? _("YOUR SHIPS") : _("ENEMY SHIPS");
+      let caption = a === 0 ? _("YOUR SHIPS") : _("ENEMY SHIPS");
+      if (spectating) caption = nameByNo(a + 1);
       let cells = "";
       for (let row = 0; row <= width; row++) {
         for (let col = 0; col <= width; col++) {
@@ -162,7 +171,7 @@ export class Game {
           ${buildGrid(0)}
           ${buildGrid(1)}
           <div class="fleet-wrap">
-            <div id="fleet_title" class="board_title ships_title caption">${_("YOUR FLEET")}</div>
+            <div id="fleet_title" class="board_title ships_title caption">${spectating ? _("FLEET") : _("YOUR FLEET")}</div>
             <div id="fleet" class="fleet">${fleetRows}</div>
           </div>
         </div>
@@ -419,6 +428,8 @@ export class Game {
     console.log("onGrid " + id);
     event.preventDefault();
     event.stopPropagation();
+
+    if (this.isSpectator()) return; // spectators only watch, no firing/placing
 
     const ss = id.split("_");
     const x = ss[2];
